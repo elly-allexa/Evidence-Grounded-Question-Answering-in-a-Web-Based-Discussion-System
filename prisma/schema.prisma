@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) 
+
+  threads      Thread[]
+  comments     Comment[]
+}
+
+model Thread {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  author      User     @relation(fields: [authorId], references: [id])
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  sources     SourceDocument[]
+  comments    Comment[]
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String
+  author      User     @relation(fields: [authorId], references: [id])
+  authorId    String
+  thread      Thread   @relation(fields: [threadId], references: [id])
+  threadId    String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SourceDocument {
+  id          String   @id @default(uuid())
+  threadId    String
+  thread      Thread   @relation(fields: [threadId], references: [id])
+  title       String
+  type        String   //"pdf", "webpage", "text"
+  contentText String   // extracted text or pasted text for MVP
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+ 
+  chunks      SourceChunk[]
+}
+
+model SourceChunk {
+  id         String   @id @default(uuid())
+  docId      String
+  doc        SourceDocument @relation(fields: [docId], references: [id])
+
+  chunkIndex Int      // for ordering chunks
+  text       String   // the actual chunk text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+
+  @@index([docId]) //for filtering later (by thread or document both)
+}

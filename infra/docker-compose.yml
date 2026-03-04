@@ -5,6 +5,7 @@ services:
       POSTGRES_USER: forum
       POSTGRES_PASSWORD: BestStrongPasskey1221
       POSTGRES_DB: forum
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     ports:
       - "5432:5432"
     volumes:
