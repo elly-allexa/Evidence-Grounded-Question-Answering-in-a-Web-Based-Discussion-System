@@ -1,37 +1,50 @@
-import { Injectable } from "@nestjs/common";
-import { PrismaService } from "src/prisma/database/prisma.service";
-import { CreateThreadDto } from "./dto/create-thread.dto";
+import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/database/prisma.service';
+import { CreateThreadDto } from './dto/create-thread.dto';
+
+const DEMO_USER_EMAIL = 'demo@fer.local';
 
 @Injectable()
 export class ThreadService {
-    constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
-    async create(createThreadDto: CreateThreadDto) {
-        return this.prisma.thread.create({
-            data: {
-                title: createThreadDto.title,
-                content: createThreadDto.content,
-                authorId: '12345', // Replace with actual user ID after he gets authenticated
-            },
-        });
+  async create(createThreadDto: CreateThreadDto) {
+    const demoUser = await this.prisma.user.findUnique({
+      where: { email: DEMO_USER_EMAIL },
+      select: { id: true },
+    });
+
+    if (!demoUser) {
+      throw new ServiceUnavailableException(
+        'Demo user is missing. Run the Prisma seed before creating threads.',
+      );
     }
 
-    async findAll() {
-        return this.prisma.thread.findMany({
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
-    }
+    return this.prisma.thread.create({
+      data: {
+        title: createThreadDto.title,
+        content: createThreadDto.content,
+        authorId: demoUser.id,
+      },
+    });
+  }
 
-    async findOne(id: string) {
-        const thread = await this.prisma.thread.findUnique({
-            where: { id },
-        });
+  async findAll() {
+    return this.prisma.thread.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 
-        if (!thread) {
-            throw new Error(`Thread with id ${id} not found`);
-        }
-        return thread;
+  async findOne(id: string) {
+    const thread = await this.prisma.thread.findUnique({
+      where: { id },
+    });
+
+    if (!thread) {
+      throw new NotFoundException(`Thread with id ${id} not found`);
     }
+    return thread;
+  }
 }

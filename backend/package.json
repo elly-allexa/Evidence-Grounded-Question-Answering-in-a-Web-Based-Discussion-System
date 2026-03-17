@@ -20,7 +20,11 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
     "studio:docker": "docker run --rm -it --network infra_default -p 5555:5555 -v \"%cd%:/app\" -w /app -e DATABASE_URL=postgresql://forum:BestStrongPasskey1221@postgres:5432/forum?schema=public node:22 bash -lc \"npx prisma studio --schema=prisma/schema.prisma --hostname 0.0.0.0 --port 5555\""
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
