@@ -1,4 +1,4 @@
-import type { Thread } from '../types/thread.types';
+import type { Thread, CreateThreadInput, UpdateThreadInput } from '../types/thread.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -12,7 +12,7 @@ export async function fetchThreads(): Promise<Thread[]> {
   return response.json();
 }
 
-export async function fetchThreadsById(id: string): Promise<Thread> {
+export async function fetchThreadById(id: string): Promise<Thread> {
   const response = await fetch(`${API_URL}/threads/${id}`);
 
   if (!response.ok) {
@@ -22,10 +22,7 @@ export async function fetchThreadsById(id: string): Promise<Thread> {
   return response.json();
 }
 
-export async function createThread(data: {
-        title: string;
-        content: string
-}): Promise<Thread> {
+export async function createThread(data: CreateThreadInput): Promise<Thread> {
   const response = await fetch(`${API_URL}/threads`, {
     method: 'POST',
     headers: {
@@ -33,10 +30,36 @@ export async function createThread(data: {
     },
     body: JSON.stringify(data),
   });
-    
+
   if (!response.ok) {
     throw new Error(`Failed to create a thread: ${response.status}`);
   }
 
   return response.json();
+}
+
+export async function updateThread(id: string, data: UpdateThreadInput): Promise<Thread> {
+  const response = await fetch(`${API_URL}/threads/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update thread ${id}: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteThread(id: string): Promise<void> {
+  const response = await fetch(`${API_URL}/threads/${id}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete thread ${id}: ${response.status}`);
+  }
 }
