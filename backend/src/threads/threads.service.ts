@@ -6,7 +6,7 @@ import { UpdateThreadDto } from './dto/update-thread.dto';
 const DEFAULT_THREAD_AUTHOR_EMAIL = 'demo@fer.local';
 
 @Injectable()
-export class ThreadService {
+export class ThreadsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createThreadDto: CreateThreadDto) {

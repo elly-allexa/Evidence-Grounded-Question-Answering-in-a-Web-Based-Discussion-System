@@ -3,14 +3,23 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { fetchThreadById, updateThread, deleteThread } from '../features/threads/api/threadsApi';
 import type { Thread } from '../features/threads/types/thread.types';
 import { ThreadEditForm } from '../features/threads/components/ThreadEditForm';
+import { fetchCommentsByThreadId } from '../features/comments/api/commentsApi';
+import type { Comment } from '../features/comments/types/comment.types';
+import { CommentForm } from '../features/comments/components/CommentForm';
+import { CommentList } from '../features/comments/components/CommentList';
 
 export function ThreadDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [thread, setThread] = useState<Thread | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+
   const [error, setError] = useState('');
+  const [commentsError, setCommentsError] = useState('');
+
   const [isLoading, setIsLoading] = useState(true);
+  const [isCommentsLoading, setIsCommentsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -39,8 +48,32 @@ export function ThreadDetailsPage() {
     }
   }
 
+  async function loadComments() {
+    if (!id) {
+      setCommentsError('Missing thread id');
+      setIsCommentsLoading(false);
+      return;
+    }
+
+    try {
+      setCommentsError('');
+      setIsCommentsLoading(true);
+      const data = await fetchCommentsByThreadId(id);
+      setComments(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        setCommentsError(err.message);
+      } else {
+        setCommentsError('Unknown error');
+      }
+    } finally {
+      setIsCommentsLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadThread();
+    loadComments();
   }, [id]);
 
   async function handleSave(data: { title: string; content: string }) {
@@ -92,47 +125,58 @@ export function ThreadDetailsPage() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       {isLoading ? (
-        <p>Loading...</p>
+        <p>Loading thread...</p>
       ) : !thread ? (
         <p>Thread not found.</p>
       ) : (
-        <article
-          style={{
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            padding: '1.5rem',
-          }}
-        >
-          <h2>{thread.title}</h2>
-          <p>{thread.content}</p>
+        <>
+          <article
+            style={{
+              border: '1px solid #ccc',
+              borderRadius: '8px',
+              padding: '1.5rem',
+              marginBottom: '2rem',
+            }}
+          >
+            <h2>{thread.title}</h2>
+            <p>{thread.content}</p>
 
-          <div style={{ marginTop: '1rem', color: '#555' }}>
-            <small>Author ID: {thread.authorId}</small>
-            <br />
-            <small>Created: {new Date(thread.createdAt).toLocaleString()}</small>
-            <br />
-            <small>Updated: {new Date(thread.updatedAt).toLocaleString()}</small>
-          </div>
+            <div style={{ marginTop: '1rem', color: '#555' }}>
+              <small>Author ID: {thread.authorId}</small>
+              <br />
+              <small>Created: {new Date(thread.createdAt).toLocaleString()}</small>
+              <br />
+              <small>Updated: {new Date(thread.updatedAt).toLocaleString()}</small>
+            </div>
 
-          <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
-            <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
-              {isEditing ? 'Close edit' : 'Edit thread'}
-            </button>
+            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+              <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
+                {isEditing ? 'Close edit' : 'Edit thread'}
+              </button>
 
-            <button type="button" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete thread'}
-            </button>
-          </div>
+              <button type="button" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? 'Deleting...' : 'Delete thread'}
+              </button>
+            </div>
 
-          {isEditing && (
-            <ThreadEditForm
-              initialTitle={thread.title}
-              initialContent={thread.content}
-              onSave={handleSave}
-              onCancel={() => setIsEditing(false)}
-            />
-          )}
-        </article>
+            {isEditing && (
+              <ThreadEditForm
+                initialTitle={thread.title}
+                initialContent={thread.content}
+                onSave={handleSave}
+                onCancel={() => setIsEditing(false)}
+              />
+            )}
+          </article>
+
+          <section>
+            {commentsError && <p style={{ color: 'red' }}>{commentsError}</p>}
+
+            {isCommentsLoading ? <p>Loading replies...</p> : <CommentList comments={comments} />}
+
+            {id && <CommentForm threadId={id} onCommentCreated={loadComments} />}
+          </section>
+        </>
       )}
     </main>
   );

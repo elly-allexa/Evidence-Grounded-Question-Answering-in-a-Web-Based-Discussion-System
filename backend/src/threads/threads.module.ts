@@ -1,9 +1,9 @@
-import { Module } from "@nestjs/common";
-import { ThreadController } from "./threads.controller";
-import { ThreadService } from "./threads.service";
+import { Module } from '@nestjs/common';
+import { ThreadsController } from './threads.controller';
+import { ThreadsService } from './threads.service';
 
 @Module({
-    controllers: [ThreadController],
-    providers: [ThreadService],
+  controllers: [ThreadsController],
+  providers: [ThreadsService],
 })
-export class ThreadModule { };
+export class ThreadsModule {}
