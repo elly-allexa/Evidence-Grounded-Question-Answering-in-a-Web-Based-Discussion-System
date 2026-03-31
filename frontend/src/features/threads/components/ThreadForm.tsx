@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createThread } from '../api/threadsApi';
 
 type ThreadFormProps = {
-    onThreadCreated: () => void;
+  onThreadCreated: () => void;
 };
 
 export function ThreadForm({ onThreadCreated }: ThreadFormProps) {
@@ -14,11 +14,19 @@ export function ThreadForm({ onThreadCreated }: ThreadFormProps) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const normalizedTitle = title.trim();
+    const normalizedContent = content.trim();
+
+    if (!normalizedTitle || !normalizedContent) {
+      setError('Title and content are required.');
+      return;
+    }
+
     try {
       setError('');
       setIsSubmitting(true);
 
-      await createThread({ title, content });
+      await createThread({ title: normalizedTitle, content: normalizedContent });
 
       setTitle('');
       setContent('');

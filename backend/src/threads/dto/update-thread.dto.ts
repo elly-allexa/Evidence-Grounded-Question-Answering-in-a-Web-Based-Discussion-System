@@ -10,6 +10,6 @@ export class UpdateThreadDto {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  @MaxLength(1000)
+  @MaxLength(5000)
   content?: string;
 }
