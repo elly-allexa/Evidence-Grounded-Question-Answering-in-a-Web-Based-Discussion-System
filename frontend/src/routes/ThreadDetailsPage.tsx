@@ -38,6 +38,7 @@ export function ThreadDetailsPage() {
       setThread(data);
     } catch (err) {
       setThread(null);
+
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -114,6 +115,27 @@ export function ThreadDetailsPage() {
     }
   }
 
+  function handleCommentCreated(newComment: Comment) {
+    setComments((prev) => [...prev, newComment]);
+  }
+
+  function handleCommentUpdated(updatedComment: Comment) {
+    setComments((prev) =>
+      prev.map((comment) => (comment.id === updatedComment.id ? updatedComment : comment)),
+    );
+  }
+
+  function handleCommentDeleted(deletedCommentId: string, replacement?: Comment) {
+    if (replacement) {
+      setComments((prev) =>
+        prev.map((comment) => (comment.id === deletedCommentId ? replacement : comment)),
+      );
+      return;
+    }
+
+    setComments((prev) => prev.filter((comment) => comment.id !== deletedCommentId));
+  }
+
   return (
     <main style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
       <div style={{ marginBottom: '1rem' }}>
@@ -142,14 +164,25 @@ export function ThreadDetailsPage() {
             <p>{thread.content}</p>
 
             <div style={{ marginTop: '1rem', color: '#555' }}>
-              <small>Author ID: {thread.authorId}</small>
+              {'author' in thread && thread.author ? (
+                <small>Author: @{thread.author.username}</small>
+              ) : (
+                <small>Author: Unknown</small>
+
+              )}
               <br />
               <small>Created: {new Date(thread.createdAt).toLocaleString()}</small>
               <br />
               <small>Updated: {new Date(thread.updatedAt).toLocaleString()}</small>
             </div>
 
-            <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+            <div
+              style={{
+                marginTop: '1.5rem',
+                display: 'flex',
+                gap: '0.75rem',
+              }}
+            >
               <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
                 {isEditing ? 'Close edit' : 'Edit thread'}
               </button>
@@ -172,9 +205,21 @@ export function ThreadDetailsPage() {
           <section>
             {commentsError && <p style={{ color: 'red' }}>{commentsError}</p>}
 
-            {isCommentsLoading ? <p>Loading replies...</p> : <CommentList comments={comments} />}
+            {isCommentsLoading ? (
+              <p>Loading replies...</p>
+            ) : id ? (
+              <CommentList
+                threadId={id}
+                comments={comments}
+                onCommentCreated={handleCommentCreated}
+                onCommentUpdated={handleCommentUpdated}
+                onCommentDeleted={handleCommentDeleted}
+              />
+            ) : (
+              <p>Missing thread id.</p>
+            )}
 
-            {id && <CommentForm threadId={id} onCommentCreated={loadComments} />}
+            {id && <CommentForm threadId={id} onCommentCreated={handleCommentCreated} />}
           </section>
         </>
       )}

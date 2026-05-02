@@ -5,6 +5,15 @@ import { UpdateThreadDto } from './dto/update-thread.dto';
 
 const DEFAULT_THREAD_AUTHOR_EMAIL = 'demo@fer.local';
 
+const threadAuthorInclude = {
+  author: {
+    select: {
+      id: true,
+      username: true,
+    },
+  },
+};
+
 @Injectable()
 export class ThreadsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -29,6 +38,7 @@ export class ThreadsService {
         content: createThreadDto.content,
         authorId: author.id,
       },
+      include: threadAuthorInclude,
     });
   }
 
@@ -37,17 +47,20 @@ export class ThreadsService {
       orderBy: {
         createdAt: 'desc',
       },
+      include: threadAuthorInclude,
     });
   }
 
   async findOne(id: string) {
     const thread = await this.prisma.thread.findUnique({
       where: { id },
+      include: threadAuthorInclude,
     });
 
     if (!thread) {
       throw new NotFoundException(`Thread with id ${id} not found`);
     }
+
     return thread;
   }
 
@@ -57,9 +70,14 @@ export class ThreadsService {
     return this.prisma.thread.update({
       where: { id },
       data: {
-        ...(updateThreadDto.title !== undefined && { title: updateThreadDto.title }),
-        ...(updateThreadDto.content !== undefined && { content: updateThreadDto.content }),
+        ...(updateThreadDto.title !== undefined && {
+          title: updateThreadDto.title,
+        }),
+        ...(updateThreadDto.content !== undefined && {
+          content: updateThreadDto.content,
+        }),
       },
+      include: threadAuthorInclude,
     });
   }
 

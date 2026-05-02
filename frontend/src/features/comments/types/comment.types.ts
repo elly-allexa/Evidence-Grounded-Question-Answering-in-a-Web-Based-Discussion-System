@@ -1,3 +1,8 @@
+export type CommentAuthor = {
+  id: string;
+  username: string;
+};
+
 export type Comment = {
   id: string;
   content: string;
@@ -5,8 +10,16 @@ export type Comment = {
   threadId: string;
   createdAt: string;
   updatedAt: string;
+  isDeleted: boolean;
+  parentId?: string | null;
+  author: CommentAuthor;
 };
 
 export type CreateCommentInput = {
   content: string;
+  parentId?: string;
+};
+
+export type UpdateCommentInput = {
+  content?: string;
 };
