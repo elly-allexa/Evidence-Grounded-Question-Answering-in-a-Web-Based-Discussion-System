@@ -3,11 +3,14 @@ import { deleteComment, updateComment } from '../api/commentsApi';
 import type { Comment } from '../types/comment.types';
 import { CommentEditForm } from './CommentEditForm';
 import { CommentForm } from './CommentForm';
+import { CURRENT_DEMO_USER_ID } from '../../../config/demoUser';
+import { getDisplayUsername } from '../../../utils/displayUser';
 
-const CURRENT_USER_ID = '23999eaf-33e1-42ad-8242-bd9b68c353eb';
+const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
+const MAX_VISUAL_DEPTH = 4;
 
 type CommentListProps = {
-  threadId: string; 
+  threadId: string;
   comments: Comment[];
   onCommentCreated: (newComment: Comment) => void;
   onCommentUpdated: (updatedComment: Comment) => void;
@@ -76,6 +79,8 @@ export function CommentList({
     const isEditing = editingCommentId === comment.id;
     const isReplying = replyingToCommentId === comment.id;
     const childReplies = commentsByParent.get(comment.id) ?? [];
+    const visualDepth = Math.min(depth, MAX_VISUAL_DEPTH);
+    const isDeepBranch = depth >= MAX_VISUAL_DEPTH;
 
     return (
       <article
@@ -84,12 +89,27 @@ export function CommentList({
           border: '1px solid #ddd',
           borderRadius: '8px',
           padding: '1rem',
-          marginLeft: `${depth * 24}px`,
+          marginLeft: `${visualDepth * 24}px`,
           marginTop: '1rem',
         }}
       >
+        {isDeepBranch && (
+          <div
+            style={{
+              marginBottom: '0.5rem',
+              padding: '0.5rem',
+              backgroundColor: '#f0f0f0',
+              borderRadius: '4px',
+              fontSize: '0.85rem',
+              color: '#666',
+            }}
+          >
+            ↩ Deep reply branch
+          </div>
+        )}
+
         <div style={{ marginBottom: '0.5rem', color: '#444' }}>
-          <strong>{comment.author.username}</strong>
+          <strong>@{getDisplayUsername(comment.author)}</strong>
         </div>
 
         {!isEditing ? (
@@ -147,7 +167,7 @@ export function CommentList({
           <CommentForm
             threadId={threadId}
             parentId={comment.id}
-            placeholder={`Reply to @${comment.author.username}`}
+            placeholder={`Reply to @${getDisplayUsername(comment.author)}`}
             submitLabel="Post reply"
             onCommentCreated={onCommentCreated}
             onCancel={() => setReplyingToCommentId(null)}

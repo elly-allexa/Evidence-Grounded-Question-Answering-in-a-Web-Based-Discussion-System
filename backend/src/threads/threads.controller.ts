@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch, Delete } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from '@nestjs/common';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
 import { ThreadsService } from './threads.service';
@@ -8,8 +8,11 @@ export class ThreadsController {
   constructor(private readonly threadsService: ThreadsService) {}
 
   @Post()
-  create(@Body() createThreadDto: CreateThreadDto) {
-    return this.threadsService.create(createThreadDto);
+  create(
+    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
+    @Body() createThreadDto: CreateThreadDto,
+  ) {
+    return this.threadsService.create(createThreadDto, demoUserEmail);
   }
 
   @Get()
@@ -23,12 +26,16 @@ export class ThreadsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateThreadDto: UpdateThreadDto) {
-    return this.threadsService.update(id, updateThreadDto);
+  update(
+    @Param('id') id: string,
+    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
+    @Body() updateThreadDto: UpdateThreadDto,
+  ) {
+    return this.threadsService.update(id, updateThreadDto, demoUserEmail);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.threadsService.remove(id);
+  remove(@Param('id') id: string, @Headers('x-demo-user-email') demoUserEmail: string | undefined) {
+    return this.threadsService.remove(id, demoUserEmail);
   }
 }

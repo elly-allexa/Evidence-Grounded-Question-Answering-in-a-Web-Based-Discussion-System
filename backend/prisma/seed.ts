@@ -2,23 +2,40 @@ import { PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const DEMO_USER = {
-  email: 'demo@fer.local',
-  username: 'demo_user',
-  passwordHash: 'demo-password-not-for-production',
-  role: Role.USER,
-};
-
 async function main() {
-  await prisma.user.upsert({
-    where: { email: DEMO_USER.email },
+  const demoUser1 = await prisma.user.upsert({
+    where: { email: 'demo@fer.local' },
     update: {
-      username: DEMO_USER.username,
-      passwordHash: DEMO_USER.passwordHash,
-      role: DEMO_USER.role,
+      username: 'demo_user1',
+      isDeleted: false,
+      deletedAt: null,
     },
-    create: DEMO_USER,
+    create: {
+      email: 'demo@fer.local',
+      username: 'demo_user1',
+      passwordHash: null,
+      role: Role.USER,
+    },
   });
+
+  const demoUser2 = await prisma.user.upsert({
+    where: { email: 'demo2@fer.local' },
+    update: {
+      username: 'demo_user2',
+      isDeleted: false,
+      deletedAt: null,
+    },
+    create: {
+      email: 'demo2@fer.local',
+      username: 'demo_user2',
+      passwordHash: null,
+      role: Role.USER,
+    },
+  });
+
+  console.log('Seeded demo users:');
+  console.log(demoUser1);
+  console.log(demoUser2);
 }
 
 main()

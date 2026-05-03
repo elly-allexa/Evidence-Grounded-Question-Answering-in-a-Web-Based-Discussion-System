@@ -1,0 +1,2 @@
+export const MAX_THREAD_CONTENT_LENGTH = 5000;
+export const MAX_THREAD_TITLE_LENGTH = 200;

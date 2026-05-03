@@ -1,6 +1,15 @@
 import type { Comment, CreateCommentInput, UpdateCommentInput } from '../types/comment.types';
+import { CURRENT_DEMO_USER_EMAIL } from '../../../config/demoUser';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const DEMO_USER_EMAIL = CURRENT_DEMO_USER_EMAIL ?? 'demo@fer.local';
+
+function getDemoUserHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'x-demo-user-email': DEMO_USER_EMAIL,
+  };
+}
 
 async function buildApiError(response: Response, fallback: string): Promise<Error> {
   try {
@@ -37,9 +46,7 @@ export async function fetchCommentsByThreadId(threadId: string): Promise<Comment
 export async function createComment(threadId: string, data: CreateCommentInput): Promise<Comment> {
   const response = await fetch(`${API_URL}/threads/${threadId}/comments`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getDemoUserHeaders(),
     body: JSON.stringify(data),
   });
 
@@ -56,9 +63,7 @@ export async function createComment(threadId: string, data: CreateCommentInput):
 export async function updateComment(commentId: string, data: UpdateCommentInput): Promise<Comment> {
   const response = await fetch(`${API_URL}/comments/${commentId}`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getDemoUserHeaders(),
     body: JSON.stringify(data),
   });
 
@@ -75,6 +80,9 @@ export async function updateComment(commentId: string, data: UpdateCommentInput)
 export async function deleteComment(commentId: string): Promise<Comment | { id: string } | void> {
   const response = await fetch(`${API_URL}/comments/${commentId}`, {
     method: 'DELETE',
+    headers: {
+      'x-demo-user-email': DEMO_USER_EMAIL,
+    },
   });
 
   if (!response.ok) {

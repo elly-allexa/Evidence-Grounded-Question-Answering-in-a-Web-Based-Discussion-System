@@ -8,15 +8,18 @@ import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
-const COMMENT_AUTHOR_EMAIL = process.env.COMMENT_AUTHOR_EMAIL ?? 'demo@fer.local';
+const DEFAULT_COMMENT_AUTHOR_EMAIL = 'demo@fer.local';
 
 @Injectable()
 export class CommentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async getDemoAuthor() {
+  private async getDemoAuthor(demoUserEmail?: string) {
+    const authorEmail =
+      demoUserEmail ?? process.env.DEMO_USER_EMAIL ?? DEFAULT_COMMENT_AUTHOR_EMAIL;
+
     const author = await this.prisma.user.findUnique({
-      where: { email: COMMENT_AUTHOR_EMAIL },
+      where: { email: authorEmail },
       select: {
         id: true,
         username: true,
@@ -25,7 +28,7 @@ export class CommentsService {
 
     if (!author) {
       throw new ServiceUnavailableException(
-        `Comment author user not found for email ${COMMENT_AUTHOR_EMAIL}. Seed the database or set COMMENT_AUTHOR_EMAIL.`,
+        `Comment author user not found for email ${authorEmail}. Seed the database or set DEMO_USER_EMAIL.`,
       );
     }
 
@@ -55,7 +58,7 @@ export class CommentsService {
     });
   }
 
-  async create(threadId: string, createCommentDto: CreateCommentDto) {
+  async create(threadId: string, createCommentDto: CreateCommentDto, demoUserEmail?: string) {
     const thread = await this.prisma.thread.findUnique({
       where: { id: threadId },
     });
@@ -64,7 +67,7 @@ export class CommentsService {
       throw new NotFoundException(`Thread with id ${threadId} not found`);
     }
 
-    const author = await this.getDemoAuthor();
+    const author = await this.getDemoAuthor(demoUserEmail);
 
     if (createCommentDto.parentId) {
       const parentComment = await this.prisma.comment.findUnique({
@@ -100,8 +103,8 @@ export class CommentsService {
     });
   }
 
-  async update(commentId: string, updateCommentDto: UpdateCommentDto) {
-    const author = await this.getDemoAuthor();
+  async update(commentId: string, updateCommentDto: UpdateCommentDto, demoUserEmail?: string) {
+    const author = await this.getDemoAuthor(demoUserEmail);
 
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
@@ -137,8 +140,8 @@ export class CommentsService {
     });
   }
 
-  async delete(commentId: string) {
-    const author = await this.getDemoAuthor();
+  async delete(commentId: string, demoUserEmail?: string) {
+    const author = await this.getDemoAuthor(demoUserEmail);
 
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },

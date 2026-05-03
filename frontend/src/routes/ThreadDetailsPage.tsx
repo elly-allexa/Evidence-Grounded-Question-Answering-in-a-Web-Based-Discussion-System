@@ -7,6 +7,9 @@ import { fetchCommentsByThreadId } from '../features/comments/api/commentsApi';
 import type { Comment } from '../features/comments/types/comment.types';
 import { CommentForm } from '../features/comments/components/CommentForm';
 import { CommentList } from '../features/comments/components/CommentList';
+import { CURRENT_DEMO_USER_ID } from '../config/demoUser';
+
+const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
 
 export function ThreadDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -168,7 +171,6 @@ export function ThreadDetailsPage() {
                 <small>Author: @{thread.author.username}</small>
               ) : (
                 <small>Author: Unknown</small>
-
               )}
               <br />
               <small>Created: {new Date(thread.createdAt).toLocaleString()}</small>
@@ -183,16 +185,20 @@ export function ThreadDetailsPage() {
                 gap: '0.75rem',
               }}
             >
-              <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
-                {isEditing ? 'Close edit' : 'Edit thread'}
-              </button>
+              {thread.authorId === CURRENT_USER_ID && (
+                <>
+                  <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
+                    {isEditing ? 'Close edit' : 'Edit thread'}
+                  </button>
 
-              <button type="button" onClick={handleDelete} disabled={isDeleting}>
-                {isDeleting ? 'Deleting...' : 'Delete thread'}
-              </button>
+                  <button type="button" onClick={handleDelete} disabled={isDeleting}>
+                    {isDeleting ? 'Deleting...' : 'Delete thread'}
+                  </button>
+                </>
+              )}
             </div>
 
-            {isEditing && (
+            {isEditing && thread.authorId === CURRENT_USER_ID && (
               <ThreadEditForm
                 initialTitle={thread.title}
                 initialContent={thread.content}

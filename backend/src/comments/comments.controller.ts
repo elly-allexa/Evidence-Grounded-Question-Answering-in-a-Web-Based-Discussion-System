@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Delete, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CommentsService } from './comments.service';
@@ -15,23 +15,26 @@ export class CommentsController {
   @Post('threads/:threadId/comments')
   create(
     @Param('threadId') threadId: string,
-    @Body() createCommentDto: CreateCommentDto
+    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
+    @Body() createCommentDto: CreateCommentDto,
   ) {
-    return this.commentsService.create(threadId, createCommentDto);
+    return this.commentsService.create(threadId, createCommentDto, demoUserEmail);
   }
 
   @Patch('comments/:commentId')
   update(
     @Param('commentId') commentId: string,
-    @Body() updateCommentDto: UpdateCommentDto
+    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
+    @Body() updateCommentDto: UpdateCommentDto,
   ) {
-    return this.commentsService.update(commentId, updateCommentDto);
+    return this.commentsService.update(commentId, updateCommentDto, demoUserEmail);
   }
 
   @Delete('comments/:commentId')
   delete(
-    @Param('commentId') commentId: string
+    @Param('commentId') commentId: string,
+    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
   ) {
-    return this.commentsService.delete(commentId);
+    return this.commentsService.delete(commentId, demoUserEmail);
   }
 }

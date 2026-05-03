@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MAX_THREAD_CONTENT_LENGTH, MAX_THREAD_TITLE_LENGTH } from '../../../config/limits';
 
 type ThreadEditFormProps = {
   initialTitle: string;
@@ -24,6 +25,16 @@ export function ThreadEditForm({
     try {
       setError('');
       setIsSaving(true);
+      if (title.trim().length > MAX_THREAD_TITLE_LENGTH) {
+        setError(`Title must be at most ${MAX_THREAD_TITLE_LENGTH} characters.`);
+        return;
+      }
+
+      if (content.trim().length > MAX_THREAD_CONTENT_LENGTH) {
+        setError(`Content must be at most ${MAX_THREAD_CONTENT_LENGTH} characters.`);
+        return;
+      }
+
       await onSave({ title, content });
     } catch (err) {
       if (err instanceof Error) {
@@ -47,6 +58,7 @@ export function ThreadEditForm({
           type="text"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
+          maxLength={MAX_THREAD_TITLE_LENGTH}
           style={{ width: '100%', padding: '0.5rem' }}
           disabled={isSaving}
         />
@@ -56,10 +68,14 @@ export function ThreadEditForm({
         <textarea
           value={content}
           onChange={(event) => setContent(event.target.value)}
+          maxLength={MAX_THREAD_CONTENT_LENGTH}
           rows={8}
           style={{ width: '100%', padding: '0.5rem' }}
           disabled={isSaving}
         />
+        <div style={{ textAlign: 'right', fontSize: '0.85rem', color: content.length > MAX_THREAD_CONTENT_LENGTH ? 'red' : '#666' }}>
+          {content.length}/{MAX_THREAD_CONTENT_LENGTH}
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem' }}>

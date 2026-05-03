@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
@@ -18,8 +23,9 @@ const threadAuthorInclude = {
 export class ThreadsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createThreadDto: CreateThreadDto) {
-    const authorEmail = process.env.THREAD_AUTHOR_EMAIL ?? DEFAULT_THREAD_AUTHOR_EMAIL;
+  private async getAuthorByEmail(demoUserEmail?: string) {
+    const authorEmail =
+      demoUserEmail ?? process.env.THREAD_AUTHOR_EMAIL ?? DEFAULT_THREAD_AUTHOR_EMAIL;
 
     const author = await this.prisma.user.findUnique({
       where: { email: authorEmail },
@@ -31,6 +37,12 @@ export class ThreadsService {
         `Thread author user not found for email ${authorEmail}. Seed the database or set THREAD_AUTHOR_EMAIL.`,
       );
     }
+
+    return author;
+  }
+
+  async create(createThreadDto: CreateThreadDto, demoUserEmail?: string) {
+    const author = await this.getAuthorByEmail(demoUserEmail);
 
     return this.prisma.thread.create({
       data: {
@@ -64,8 +76,20 @@ export class ThreadsService {
     return thread;
   }
 
-  async update(id: string, updateThreadDto: UpdateThreadDto) {
-    await this.findOne(id);
+  async update(id: string, updateThreadDto: UpdateThreadDto, demoUserEmail?: string) {
+    const author = await this.getAuthorByEmail(demoUserEmail);
+
+    const thread = await this.prisma.thread.findUnique({
+      where: { id },
+    });
+
+    if (!thread) {
+      throw new NotFoundException(`Thread with id ${id} not found`);
+    }
+
+    if (thread.authorId !== author.id) {
+      throw new ForbiddenException('You can edit only your own threads');
+    }
 
     return this.prisma.thread.update({
       where: { id },
@@ -81,8 +105,20 @@ export class ThreadsService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, demoUserEmail?: string) {
+    const author = await this.getAuthorByEmail(demoUserEmail);
+
+    const thread = await this.prisma.thread.findUnique({
+      where: { id },
+    });
+
+    if (!thread) {
+      throw new NotFoundException(`Thread with id ${id} not found`);
+    }
+
+    if (thread.authorId !== author.id) {
+      throw new ForbiddenException('You can delete only your own threads');
+    }
 
     return this.prisma.thread.delete({
       where: { id },

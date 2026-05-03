@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createThread } from '../api/threadsApi';
+import { MAX_THREAD_CONTENT_LENGTH, MAX_THREAD_TITLE_LENGTH } from '../../../config/limits';
 
 type ThreadFormProps = {
   onThreadCreated: () => void;
@@ -19,6 +20,16 @@ export function ThreadForm({ onThreadCreated }: ThreadFormProps) {
 
     if (!normalizedTitle || !normalizedContent) {
       setError('Title and content are required.');
+      return;
+    }
+
+    if (normalizedTitle.length > MAX_THREAD_TITLE_LENGTH) {
+      setError(`Title must be at most ${MAX_THREAD_TITLE_LENGTH} characters.`);
+      return;
+    }
+
+    if (normalizedContent.length > MAX_THREAD_CONTENT_LENGTH) {
+      setError(`Content must be at most ${MAX_THREAD_CONTENT_LENGTH} characters.`);
       return;
     }
 
@@ -54,6 +65,7 @@ export function ThreadForm({ onThreadCreated }: ThreadFormProps) {
           placeholder="Thread title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
+          maxLength={MAX_THREAD_TITLE_LENGTH}
           style={{ width: '100%', padding: '0.5rem' }}
           disabled={isSubmitting}
         />
@@ -64,10 +76,14 @@ export function ThreadForm({ onThreadCreated }: ThreadFormProps) {
           placeholder="Thread body"
           value={content}
           onChange={(event) => setContent(event.target.value)}
+          maxLength={MAX_THREAD_CONTENT_LENGTH}
           rows={6}
           style={{ width: '100%', padding: '0.5rem' }}
           disabled={isSubmitting}
         />
+        <div style={{ textAlign: 'right', fontSize: '0.85rem', color: content.length > MAX_THREAD_CONTENT_LENGTH ? 'red' : '#666' }}>
+          {content.length}/{MAX_THREAD_CONTENT_LENGTH}
+        </div>
       </div>
 
       <button type="submit" disabled={isSubmitting}>
