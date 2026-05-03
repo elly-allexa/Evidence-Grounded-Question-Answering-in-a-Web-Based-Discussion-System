@@ -81,7 +81,13 @@ export function ThreadForm({ onThreadCreated }: ThreadFormProps) {
           style={{ width: '100%', padding: '0.5rem' }}
           disabled={isSubmitting}
         />
-        <div style={{ textAlign: 'right', fontSize: '0.85rem', color: content.length > MAX_THREAD_CONTENT_LENGTH ? 'red' : '#666' }}>
+        <div
+          style={{
+            textAlign: 'right',
+            fontSize: '0.85rem',
+            color: content.length > MAX_THREAD_CONTENT_LENGTH ? 'red' : '#666',
+          }}
+        >
           {content.length}/{MAX_THREAD_CONTENT_LENGTH}
         </div>
       </div>
