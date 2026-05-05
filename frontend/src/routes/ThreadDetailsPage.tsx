@@ -8,6 +8,10 @@ import type { Comment } from '../features/comments/types/comment.types';
 import { CommentForm } from '../features/comments/components/CommentForm';
 import { CommentList } from '../features/comments/components/CommentList';
 import { CURRENT_DEMO_USER_ID } from '../config/demoUser';
+import { fetchSourcesByThreadId } from '../features/sources/api/sourcesApi';
+import type { SourceDocument } from '../features/sources/types/source.types';
+import { SourceForm } from '../features/sources/components/SourceForm';
+import { SourceList } from '../features/sources/components/SourceList';
 
 const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
 
@@ -17,12 +21,15 @@ export function ThreadDetailsPage() {
 
   const [thread, setThread] = useState<Thread | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [sources, setSources] = useState<SourceDocument[]>([]);
 
   const [error, setError] = useState('');
   const [commentsError, setCommentsError] = useState('');
+  const [sourcesError, setSourcesError] = useState('');
 
   const [isLoading, setIsLoading] = useState(true);
   const [isCommentsLoading, setIsCommentsLoading] = useState(true);
+  const [isSourcesLoading, setIsSourcesLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -75,9 +82,33 @@ export function ThreadDetailsPage() {
     }
   }
 
+  async function loadSources() {
+    if (!id) {
+      setSourcesError('Missing thread id');
+      setIsSourcesLoading(false);
+      return;
+    }
+
+    try {
+      setSourcesError('');
+      setIsSourcesLoading(true);
+      const data = await fetchSourcesByThreadId(id);
+      setSources(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        setSourcesError(err.message);
+      } else {
+        setSourcesError('Unknown error');
+      }
+    } finally {
+      setIsSourcesLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadThread();
     loadComments();
+    loadSources();
   }, [id]);
 
   async function handleSave(data: { title: string; content: string }) {
@@ -137,6 +168,14 @@ export function ThreadDetailsPage() {
     }
 
     setComments((prev) => prev.filter((comment) => comment.id !== deletedCommentId));
+  }
+
+  function handleSourceCreated(newSource: SourceDocument) {
+    setSources((prev) => [newSource, ...prev]);
+  }
+
+  function handleSourceDeleted(sourceId: string) {
+    setSources((prev) => prev.filter((source) => source.id !== sourceId));
   }
 
   return (
@@ -207,6 +246,37 @@ export function ThreadDetailsPage() {
               />
             )}
           </article>
+
+          <section
+            style={{
+              border: '1px solid #ccc',
+              borderRadius: '8px',
+              padding: '1.5rem',
+              marginBottom: '2rem',
+            }}
+          >
+            <h2>Evidence sources</h2>
+
+            <p style={{ color: '#555' }}>
+              These sources will later be used by the AI module for evidence-grounded answers.
+            </p>
+
+            {sourcesError && <p style={{ color: 'red' }}>{sourcesError}</p>}
+
+            {isSourcesLoading ? (
+              <p>Loading sources...</p>
+            ) : (
+              <SourceList
+                sources={sources}
+                canManageSources={thread.authorId === CURRENT_USER_ID}
+                onSourceDeleted={handleSourceDeleted}
+              />
+            )}
+
+            {id && thread.authorId === CURRENT_USER_ID && (
+              <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
+            )}
+          </section>
 
           <section>
             {commentsError && <p style={{ color: 'red' }}>{commentsError}</p>}

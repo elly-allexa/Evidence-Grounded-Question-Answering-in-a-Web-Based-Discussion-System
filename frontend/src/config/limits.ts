@@ -1,2 +1,6 @@
 export const MAX_THREAD_CONTENT_LENGTH = 5000;
 export const MAX_THREAD_TITLE_LENGTH = 200;
+export const MAX_COMMENT_LENGTH = 3000;
+
+export const MAX_SOURCE_TITLE_LENGTH = 200;
+export const MAX_SOURCE_TEXT_LENGTH = 20000;
