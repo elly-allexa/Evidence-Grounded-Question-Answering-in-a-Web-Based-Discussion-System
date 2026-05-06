@@ -81,7 +81,7 @@ model SourceDocument {
 model SourceChunk {
   id    String         @id @default(uuid())
   docId String
-  doc   SourceDocument @relation(fields: [docId], references: [id])
+  doc   SourceDocument @relation(fields: [docId], references: [id], onDelete: Cascade)
 
   chunkIndex Int // for ordering chunks
   text       String // the actual chunk text

@@ -1,5 +1,9 @@
 export type SourceType = 'text' | 'markdown';
 
+export type SourceChunkCount = {
+  chunks: number;
+};
+
 export type SourceDocument = {
   id: string;
   threadId: string;
@@ -8,6 +12,7 @@ export type SourceDocument = {
   contentText: string;
   createdAt: string;
   updatedAt: string;
+  _count?: SourceChunkCount;
 };
 
 export type CreateSourceInput = {

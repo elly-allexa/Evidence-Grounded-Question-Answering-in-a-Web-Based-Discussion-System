@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateSourceDto } from './dto/create-source.dto';
+import { SourceChunkingService } from './chunking/source-chunking.service';
 
 const DEFAULT_SOURCE_AUTHOR_EMAIL = 'demo@fer.local';
 
@@ -16,7 +17,10 @@ const sourceInclude = {
 
 @Injectable()
 export class SourcesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly sourceChunkingService: SourceChunkingService,
+  ) {}
 
   private async getDemoAuthor(demoUserEmail?: string) {
     const authorEmail = demoUserEmail ?? process.env.DEMO_USER_EMAIL ?? DEFAULT_SOURCE_AUTHOR_EMAIL;
@@ -52,7 +56,13 @@ export class SourcesService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: sourceInclude,
+      include: {
+        _count: {
+          select: {
+            chunks: true,
+          },
+        },
+      },
     });
   }
 
@@ -71,14 +81,45 @@ export class SourcesService {
       throw new ForbiddenException('Only the thread author can attach sources for now');
     }
 
-    return this.prisma.sourceDocument.create({
-      data: {
-        threadId,
-        title: createSourceDto.title,
-        type: createSourceDto.type,
-        contentText: createSourceDto.contentText,
-      },
-      include: sourceInclude,
+    const chunks = this.sourceChunkingService.splitIntoChunks(createSourceDto.contentText);
+
+    return this.prisma.$transaction(async (tx) => {
+      const source = await tx.sourceDocument.create({
+        data: {
+          threadId,
+          title: createSourceDto.title,
+          type: createSourceDto.type,
+          contentText: createSourceDto.contentText,
+        },
+        include: {
+          _count: {
+            select: {
+              chunks: true,
+            },
+          },
+        },
+      });
+
+      if (chunks.length > 0) {
+        await tx.sourceChunk.createMany({
+          data: chunks.map((chunkText, index) => ({
+            docId: source.id,
+            chunkIndex: index,
+            text: chunkText,
+          })),
+        });
+      }
+
+      return tx.sourceDocument.findUniqueOrThrow({
+        where: { id: source.id },
+        include: {
+          _count: {
+            select: {
+              chunks: true,
+            },
+          },
+        },
+      });
     });
   }
 
@@ -100,6 +141,57 @@ export class SourcesService {
 
     return this.prisma.sourceDocument.delete({
       where: { id: sourceId },
+    });
+  }
+
+  async findChunksBySourceId(sourceId: string) {
+    const source = await this.prisma.sourceDocument.findUnique({
+      where: { id: sourceId },
+    });
+
+    if (!source) {
+      throw new NotFoundException(`Source with id ${sourceId} not found`);
+    }
+
+    return this.prisma.sourceChunk.findMany({
+      where: { docId: sourceId },
+      orderBy: {
+        chunkIndex: 'asc',
+      },
+    });
+  }
+
+  async findChunksByThreadId(threadId: string) {
+    const thread = await this.prisma.thread.findUnique({
+      where: { id: threadId },
+    });
+
+    if (!thread) {
+      throw new NotFoundException(`Thread with id ${threadId} not found`);
+    }
+
+    return this.prisma.sourceChunk.findMany({
+      where: {
+        doc: {
+          threadId,
+        },
+      },
+      orderBy: [
+        {
+          docId: 'asc',
+        },
+        {
+          chunkIndex: 'asc',
+        },
+      ],
+      include: {
+        doc: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
     });
   }
 }

@@ -27,4 +27,14 @@ export class SourcesController {
   ) {
     return this.sourcesService.delete(sourceId, demoUserEmail);
   }
+
+  @Get('sources/:sourceId/chunks')
+  getChunksBySourceId(@Param('sourceId') sourceId: string) {
+    return this.sourcesService.findChunksBySourceId(sourceId);
+  }
+
+  @Get('threads/:threadId/chunks')
+  getChunksByThreadId(@Param('threadId') threadId: string) {
+    return this.sourcesService.findChunksByThreadId(threadId);
+  }
 }

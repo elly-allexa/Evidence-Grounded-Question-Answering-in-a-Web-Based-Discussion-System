@@ -1,5 +1,6 @@
 import { CURRENT_DEMO_USER_EMAIL } from '../../../config/demoUser';
 import type { CreateSourceInput, SourceDocument } from '../types/source.types';
+import type { SourceChunk } from '../types/sourceChunk.types';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const DEMO_USER_EMAIL = CURRENT_DEMO_USER_EMAIL ?? 'demo@fer.local';
@@ -74,4 +75,27 @@ export async function deleteSource(sourceId: string): Promise<void> {
   if (!response.ok) {
     throw await buildApiError(response, `Failed to delete source ${sourceId}: ${response.status}`);
   }
+}
+
+export async function fetchChunksBySourceId(sourceId: string): Promise<SourceChunk[]> {
+  const response = await fetch(`${API_URL}/sources/${sourceId}/chunks`);
+
+  if (!response.ok) {
+    throw await buildApiError(
+      response,
+      `Failed to fetch chunks for source ${sourceId}: ${response.status}`,
+    );
+  }
+
+  return response.json();
+}
+
+export async function fetchChunksByThreadId(threadId: string): Promise<SourceChunk[]> {
+  const response = await fetch(`${API_URL}/threads/${threadId}/chunks`);
+
+  if (!response.ok) {
+    throw await buildApiError(response, `Failed to fetch chunks for thread ${threadId}: ${response.status}`);
+  }
+
+  return response.json();
 }

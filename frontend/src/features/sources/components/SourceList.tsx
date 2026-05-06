@@ -51,6 +51,8 @@ export function SourceList({ sources, canManageSources, onSourceDeleted }: Sourc
               <small>Type: {source.type}</small>
               <br />
               <small>Created: {new Date(source.createdAt).toLocaleString()}</small>
+              <br />
+              <small>Chunks: {source._count?.chunks ?? 0}</small>
             </div>
 
             <p style={{ whiteSpace: 'pre-wrap' }}>{truncateText(source.contentText)}</p>
