@@ -12,6 +12,7 @@ import { fetchSourcesByThreadId } from '../features/sources/api/sourcesApi';
 import type { SourceDocument } from '../features/sources/types/source.types';
 import { SourceForm } from '../features/sources/components/SourceForm';
 import { SourceList } from '../features/sources/components/SourceList';
+import { RetrievalDebugPanel } from '../features/retrieval/components/RetrievalDebugPanel';
 
 const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
 
@@ -277,6 +278,8 @@ export function ThreadDetailsPage() {
               <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
             )}
           </section>
+
+          {id && <RetrievalDebugPanel threadId={id} hasSources={sources.length > 0} />}
 
           <section>
             {commentsError && <p style={{ color: 'red' }}>{commentsError}</p>}
