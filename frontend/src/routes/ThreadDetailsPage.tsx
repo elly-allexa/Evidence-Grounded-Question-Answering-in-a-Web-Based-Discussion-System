@@ -13,6 +13,7 @@ import type { SourceDocument } from '../features/sources/types/source.types';
 import { SourceForm } from '../features/sources/components/SourceForm';
 import { SourceList } from '../features/sources/components/SourceList';
 import { RetrievalDebugPanel } from '../features/retrieval/components/RetrievalDebugPanel';
+import { GroundedAiPanel }  from '../features/ai/components/GroundedAiPanel';
 
 const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
 
@@ -278,6 +279,8 @@ export function ThreadDetailsPage() {
               <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
             )}
           </section>
+
+          {id && <GroundedAiPanel threadId={id} hasSources={sources.length > 0} />}
 
           {id && <RetrievalDebugPanel threadId={id} hasSources={sources.length > 0} />}
 

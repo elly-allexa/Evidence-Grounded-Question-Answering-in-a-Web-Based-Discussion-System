@@ -3,8 +3,7 @@ import { PrismaService } from 'src/prisma/database/prisma.service';
 import { GroqProvider } from './providers/groq.provider';
 import { RetrievalService } from 'src/retrieval/retrieval.service';
 import { GroundedAiAnswer } from './types/grounded-answer.types';
-
-const DEFAULT_AI_RETRIEVAL_LIMIT = 5; 
+import { MAX_AI_OUTPUT_TOKENS, DEFAULT_AI_RETRIEVAL_LIMIT } from 'src/config/limits';
 
 @Injectable()
 export class AiService {
@@ -92,7 +91,8 @@ export class AiService {
             'Do not use outside knowledge.',
             'If the evidence is insufficient, say that the provided sources do not contain enough information.',
             'Cite sources using bracket numbers like [1], [2].',
-            'Be clear, concise, helpful and explain your reasoning, make it easy to understand and if possible provide real-life examples.',
+            'Be clear, concise, helpful, and easy to understand.',
+            'Use real-life examples only if they are supported by the provided evidence chunks.',
           ].join('\n'),
         },
         {
@@ -122,13 +122,49 @@ export class AiService {
       quote: this.createShortQuote(chunk.text),
     }));
 
-    return {
-      answer: result.text,
-      citations,
-      provider: result.provider,
-      model: result.model,
-      usedChunkCount: retrievedChunks.length,
-    };
+    const savedAnswer = await this.prisma.aiAnswer.create({
+      data: {
+        threadId,
+        question,
+        answer: result.text,
+        provider: result.provider,
+        model: result.model,
+        usedChunkCount: retrievedChunks.length,
+        citations: {
+          create: citations.map((citation) => ({
+            sourceId: citation.sourceId,
+            sourceTitle: citation.sourceTitle,
+            chunkId: citation.chunkId,
+            chunkIndex: citation.chunkIndex,
+            quote: citation.quote,
+          })),
+        },
+      },
+      include: {
+        citations: true,
+      },
+    });
+
+    return savedAnswer;
+  }
+
+  async findAnswersByThreadId(threadId: string) {
+    const thread = await this.prisma.thread.findUnique({
+      where: { id: threadId },
+      select: { id: true },
+    });
+
+    if (!thread) {
+      throw new NotFoundException(`Thread with id ${threadId} not found`);
+    }
+
+    return this.prisma.aiAnswer.findMany({
+      where: { threadId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        citations: true,
+      },
+    });
   }
 
   private createShortQuote(text: string): string {

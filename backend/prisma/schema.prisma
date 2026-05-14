@@ -42,8 +42,9 @@ model Thread {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sources  SourceDocument[]
-  comments Comment[]
+  aiAnswers AiAnswer[]
+  sources   SourceDocument[]
+  comments  Comment[]
 }
 
 model Comment {
@@ -90,4 +91,39 @@ model SourceChunk {
   updatedAt DateTime @updatedAt
 
   @@index([docId]) //for filtering later (by thread or document both)
+}
+
+model AiAnswer {
+  id       String @id @default(uuid())
+  threadId String
+  thread   Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  question       String
+  answer         String
+  provider       String
+  model          String
+  usedChunkCount Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  citations AiCitation[]
+
+  @@index([threadId])
+}
+
+model AiCitation {
+  id         String   @id @default(uuid())
+  aiAnswerId String
+  aiAnswer   AiAnswer @relation(fields: [aiAnswerId], references: [id], onDelete: Cascade)
+
+  sourceId    String
+  sourceTitle String
+  chunkId     String
+  chunkIndex  Int
+  quote       String
+
+  createdAt DateTime @default(now())
+
+  @@index([aiAnswerId])
 }

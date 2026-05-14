@@ -4,3 +4,5 @@ export const MAX_COMMENT_LENGTH = 3000;
 
 export const MAX_SOURCE_TITLE_LENGTH = 200;
 export const MAX_SOURCE_TEXT_LENGTH = 20000;
+export const DEFAULT_AI_RETRIEVAL_LIMIT = 5;
+export const MAX_AI_QUESTION_LENGTH = 1000;

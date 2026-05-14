@@ -1,0 +1,4 @@
+export const MAX_AI_QUESTION_LENGTH = 2000;
+export const DEFAULT_AI_RETRIEVAL_LIMIT = 5;
+export const MAX_AI_RETRIEVAL_LIMIT = 10;
+export const MAX_AI_OUTPUT_TOKENS = 800;
