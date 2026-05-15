@@ -57,47 +57,48 @@ export function GroundedAiPanel({ threadId, hasSources, onAnswerCreated }: Groun
   }
 
   return (
-    <section
-      style={{
-        border: '1px solid #ccc',
-        borderRadius: '8px',
-        padding: '1.5rem',
-        marginBottom: '2rem',
-      }}
-    >
-      <h2>Ask AI from evidence</h2>
+    <section className="ai-panel">
+      <div className="card-heading">
+        <div>
+          <h2>Ask AI from evidence</h2>
+          <p className="card-heading__text">
+            The answer is generated only from the attached source chunks. If the sources do not
+            contain enough information, the AI should say so.
+          </p>
+        </div>
+      </div>
 
-      <p style={{ color: '#555' }}>
-        The AI answer is generated only from the attached source chunks. If the sources do not
-        contain enough information, the AI should say so.
-      </p>
+      {error && <p className="error-banner">{error}</p>}
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      <form onSubmit={handleSubmit}>
+      <form className="ai-panel__form" onSubmit={handleSubmit}>
         <textarea
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           maxLength={MAX_AI_QUESTION_LENGTH}
           rows={4}
           placeholder="Ask a question about the attached sources..."
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            boxSizing: 'border-box',
-            marginBottom: '0.5rem',
-            resize: 'vertical',
-          }}
+          className="panel-textarea"
           disabled={isGenerating}
+          aria-describedby="ai-question-status"
         />
 
-        <div style={{ textAlign: 'right', fontSize: '0.85rem', color: '#666' }}>
+        <div className="field-meta">
           {question.length}/{MAX_AI_QUESTION_LENGTH}
         </div>
 
-        <button type="submit" disabled={isGenerating}>
-          {isGenerating ? 'Generating answer...' : 'Ask AI'}
-        </button>
+        <div className="action-row action-row--spread">
+          <p className="forum-card__status forum-card__status--compact" id="ai-question-status">
+            {hasSources
+              ? 'Ask a question grounded in the attached evidence.'
+              : 'Add sources before asking AI.'}
+          </p>
+
+          <button type="submit" disabled={isGenerating || !hasSources}>
+            {isGenerating ? 'Generating answer...' : 'Ask AI'}
+          </button>
+        </div>
+
+        {isGenerating && <p className="forum-card__status">Generating grounded answer...</p>}
       </form>
     </section>
   );

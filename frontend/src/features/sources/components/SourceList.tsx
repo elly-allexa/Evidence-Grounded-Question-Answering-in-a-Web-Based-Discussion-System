@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { deleteSource } from '../api/sourcesApi';
 import type { SourceDocument } from '../types/source.types';
 
@@ -7,7 +8,9 @@ type SourceListProps = {
   onSourceDeleted: (sourceId: string) => void;
 };
 
-function truncateText(text: string, maxLength = 300): string {
+const PREVIEW_LENGTH = 280;
+
+function truncateText(text: string, maxLength = PREVIEW_LENGTH): string {
   if (text.length <= maxLength) {
     return text;
   }
@@ -15,7 +18,24 @@ function truncateText(text: string, maxLength = 300): string {
   return `${text.slice(0, maxLength)}...`;
 }
 
+function getDeleteErrorMessage(error: unknown): string {
+  const fallback = 'Failed to delete source. Please try again.';
+
+  if (!(error instanceof Error)) {
+    return fallback;
+  }
+
+  if (error.message.includes('Sources cannot be deleted after an AI answer has been generated.')) {
+    return 'This source cannot be deleted because the thread already has an AI answer. Remove the answer history first if you need to change the evidence set.';
+  }
+
+  return error.message || fallback;
+}
+
 export function SourceList({ sources, canManageSources, onSourceDeleted }: SourceListProps) {
+  const [expandedSourceIds, setExpandedSourceIds] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState('');
+
   async function handleDelete(sourceId: string) {
     const confirmed = window.confirm('Are you sure you want to delete this source?');
 
@@ -23,48 +43,77 @@ export function SourceList({ sources, canManageSources, onSourceDeleted }: Sourc
       return;
     }
 
-    await deleteSource(sourceId);
-    onSourceDeleted(sourceId);
+    try {
+      setError('');
+      await deleteSource(sourceId);
+      onSourceDeleted(sourceId);
+    } catch (deleteError) {
+      setError(getDeleteErrorMessage(deleteError));
+    }
+  }
+
+  function togglePreview(sourceId: string) {
+    setExpandedSourceIds((prev) => ({
+      ...prev,
+      [sourceId]: !prev[sourceId],
+    }));
   }
 
   if (sources.length === 0) {
-    return <p>No sources attached yet.</p>;
+    return (
+      <p className="forum-card__status forum-card__status--compact">No sources attached yet.</p>
+    );
   }
 
   return (
-    <section style={{ marginTop: '2rem' }}>
-      <h3>Attached sources</h3>
+    <div className="source-list">
+      {error && <p className="error-banner">{error}</p>}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {sources.map((source) => (
-          <article
-            key={source.id}
-            style={{
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              padding: '1rem',
-            }}
-          >
-            <h4>{source.title}</h4>
+      <div className="source-list__items">
+        {sources.map((source) => {
+          const isExpanded = expandedSourceIds[source.id] ?? false;
+          const hasOverflow = source.contentText.length > PREVIEW_LENGTH;
 
-            <div style={{ color: '#666', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-              <small>Type: {source.type}</small>
-              <br />
-              <small>Created: {new Date(source.createdAt).toLocaleString()}</small>
-              <br />
-              <small>Chunks: {source._count?.chunks ?? 0}</small>
-            </div>
+          return (
+            <article key={source.id} className="source-card">
+              <div className="source-card__header">
+                <div>
+                  <h3>{source.title}</h3>
+                  <div className="source-card__meta">
+                    <span>Type: {source.type}</span>
+                    <span>Created: {new Date(source.createdAt).toLocaleString()}</span>
+                    <span>Chunks: {source._count?.chunks ?? 0}</span>
+                  </div>
+                </div>
 
-            <p style={{ whiteSpace: 'pre-wrap' }}>{truncateText(source.contentText)}</p>
+                {hasOverflow && (
+                  <button
+                    type="button"
+                    className="button--ghost"
+                    onClick={() => togglePreview(source.id)}
+                  >
+                    {isExpanded ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </div>
 
-            {canManageSources && (
-              <button type="button" onClick={() => handleDelete(source.id)}>
-                Delete source
-              </button>
-            )}
-          </article>
-        ))}
+              <p
+                className={`source-card__preview ${isExpanded ? 'source-card__preview--expanded' : ''}`}
+              >
+                {isExpanded ? source.contentText : truncateText(source.contentText)}
+              </p>
+
+              {canManageSources && (
+                <div className="source-card__actions">
+                  <button type="button" onClick={() => handleDelete(source.id)}>
+                    Delete source
+                  </button>
+                </div>
+              )}
+            </article>
+          );
+        })}
       </div>
-    </section>
+    </div>
   );
 }

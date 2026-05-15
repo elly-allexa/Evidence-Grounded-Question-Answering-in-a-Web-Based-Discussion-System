@@ -6,61 +6,43 @@ type AiAnswerListProps = {
 
 export function AiAnswerList({ answers }: AiAnswerListProps) {
   if (answers.length === 0) {
-    return <p>No AI answers yet.</p>;
+    return <p className="forum-card__status forum-card__status--compact">No AI answers yet.</p>;
   }
 
-  return (
-    <section style={{ marginTop: '1.5rem' }}>
-      <h3>Previous AI answers</h3>
+  return answers.map((answer) => (
+    <article key={answer.id} className="ai-answer-card">
+      <div className="ai-answer-card__section">
+        <p className="label-text">Question</p>
+        <p className="ai-answer-card__question">{answer.question}</p>
+      </div>
 
-      {answers.map((answer) => (
-        <article
-          key={answer.id}
-          style={{
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            padding: '1rem',
-            marginBottom: '1rem',
-          }}
-        >
-          <h4>Question</h4>
-          <p>{answer.question}</p>
+      <div className="ai-answer-card__section">
+        <p className="label-text">AI answer</p>
+        <p className="ai-answer-card__answer">{answer.answer}</p>
+      </div>
 
-          <h4>AI answer</h4>
-          <p style={{ whiteSpace: 'pre-wrap' }}>{answer.answer}</p>
+      <div className="ai-answer-card__meta">
+        <span>Provider: {answer.provider}</span>
+        <span>Model: {answer.model}</span>
+        <span>Used chunks: {answer.usedChunkCount}</span>
+        <span>Created: {new Date(answer.createdAt).toLocaleString()}</span>
+      </div>
 
-          <div style={{ color: '#666', fontSize: '0.9rem' }}>
-            <small>Provider: {answer.provider}</small>
-            <br />
-            <small>Model: {answer.model}</small>
-            <br />
-            <small>Used chunks: {answer.usedChunkCount}</small>
-            <br />
-            <small>Created: {new Date(answer.createdAt).toLocaleString()}</small>
-          </div>
+      <details className="ai-answer-card__citations">
+        <summary>Citations ({answer.citations.length})</summary>
 
-          <h4>Citations</h4>
-
+        <div className="ai-answer-card__citation-list">
           {answer.citations.map((citation, index) => (
-            <article
-              key={citation.id ?? citation.chunkId}
-              style={{
-                border: '1px solid #eee',
-                borderRadius: '8px',
-                padding: '0.75rem',
-                marginBottom: '0.75rem',
-              }}
-            >
+            <article key={citation.id ?? citation.chunkId} className="citation-card">
               <strong>
                 [{index + 1}] {citation.sourceTitle}
               </strong>
-              <br />
               <small>Chunk #{citation.chunkIndex}</small>
               <p>{citation.quote}</p>
             </article>
           ))}
-        </article>
-      ))}
-    </section>
-  );
+        </div>
+      </details>
+    </article>
+  ));
 }

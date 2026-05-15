@@ -19,6 +19,7 @@ import type { GroundedAiAnswer } from '../features/ai/types/ai.types';
 import { AiAnswerList } from '../features/ai/components/AiAnswerList';
 
 const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
+const SHOW_RETRIEVAL_DEBUG_PANEL = import.meta.env.DEV;
 
 export function ThreadDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ export function ThreadDetailsPage() {
   const [error, setError] = useState('');
   const [commentsError, setCommentsError] = useState('');
   const [sourcesError, setSourcesError] = useState('');
+  const [isAiAnswersExpanded, setIsAiAnswersExpanded] = useState(true);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isCommentsLoading, setIsCommentsLoading] = useState(true);
@@ -214,147 +216,184 @@ export function ThreadDetailsPage() {
   }
 
   return (
-    <main style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
-      <div style={{ marginBottom: '1rem' }}>
-        <Link to="/threads">← Back to threads</Link>
+    <main className="forum-page">
+      <div className="forum-page__inner">
+        <div className="forum-page__backlink">
+          <Link to="/threads">← Back to threads</Link>
+        </div>
+
+        <header className="forum-page__header">
+          <div>
+            <p className="forum-page__eyebrow">Thread discussion</p>
+            <h1>Thread details</h1>
+          </div>
+        </header>
+
+        {error && <p className="error-banner">{error}</p>}
+
+        {isLoading ? (
+          <div className="forum-card forum-card--empty">Loading thread...</div>
+        ) : !thread ? (
+          <div className="forum-card forum-card--empty">Thread not found.</div>
+        ) : (
+          <div className="thread-layout">
+            <div className="thread-layout__main">
+              <article className="forum-card thread-hero">
+                <div className="thread-hero__header">
+                  <div>
+                    <h2>{thread.title}</h2>
+                    <p className="thread-hero__meta">
+                      {'author' in thread && thread.author ? (
+                        <span>@{thread.author.username}</span>
+                      ) : (
+                        <span>Unknown author</span>
+                      )}
+                      <span>Created {new Date(thread.createdAt).toLocaleString()}</span>
+                      <span>Updated {new Date(thread.updatedAt).toLocaleString()}</span>
+                    </p>
+                  </div>
+
+                  {thread.authorId === CURRENT_USER_ID && (
+                    <div className="thread-hero__actions">
+                      <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
+                        {isEditing ? 'Close edit' : 'Edit thread'}
+                      </button>
+
+                      <button type="button" onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting ? 'Deleting...' : 'Delete thread'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <p className="thread-hero__content">{thread.content}</p>
+
+                {isEditing && thread.authorId === CURRENT_USER_ID && (
+                  <div className="thread-hero__editor">
+                    <ThreadEditForm
+                      initialTitle={thread.title}
+                      initialContent={thread.content}
+                      onSave={handleSave}
+                      onCancel={() => setIsEditing(false)}
+                    />
+                  </div>
+                )}
+              </article>
+
+              <section className="forum-card">
+                <div className="card-heading">
+                  <div>
+                    <h2>Evidence sources</h2>
+                    <p className="card-heading__text">
+                      Attached source text is used for grounded AI answers and citations.
+                    </p>
+                  </div>
+                </div>
+
+                {sourcesError && <p className="error-banner">{sourcesError}</p>}
+
+                {isSourcesLoading ? (
+                  <div className="forum-card__status">Loading sources...</div>
+                ) : (
+                  <SourceList
+                    sources={sources}
+                    canManageSources={thread.authorId === CURRENT_USER_ID}
+                    onSourceDeleted={handleSourceDeleted}
+                  />
+                )}
+
+                {id && thread.authorId === CURRENT_USER_ID && (
+                  <div className="forum-card__subsection">
+                    <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
+                  </div>
+                )}
+              </section>
+
+              <section className="forum-card">
+                <div className="card-heading">
+                  <div>
+                    <h2>Comments</h2>
+                    <p className="card-heading__text">
+                      Discussion and replies stay close to the thread so they are easy to review.
+                    </p>
+                  </div>
+                </div>
+
+                {commentsError && <p className="error-banner">{commentsError}</p>}
+
+                {isCommentsLoading ? (
+                  <div className="forum-card__status">Loading replies...</div>
+                ) : id ? (
+                  <CommentList
+                    threadId={id}
+                    comments={comments}
+                    onCommentCreated={handleCommentCreated}
+                    onCommentUpdated={handleCommentUpdated}
+                    onCommentDeleted={handleCommentDeleted}
+                  />
+                ) : (
+                  <div className="forum-card__status">Missing thread id.</div>
+                )}
+
+                {id && <CommentForm threadId={id} onCommentCreated={handleCommentCreated} />}
+              </section>
+            </div>
+
+            <aside className="thread-layout__sidebar">
+              {id && (
+                <section className="forum-card">
+                  <GroundedAiPanel
+                    threadId={id}
+                    hasSources={sources.length > 0}
+                    onAnswerCreated={handleAiAnswerCreated}
+                  />
+                </section>
+              )}
+
+              <section className="forum-card forum-card--sticky">
+                <div className="card-heading card-heading--split">
+                  <div>
+                    <h2>Previous AI answers</h2>
+                    <p className="card-heading__text">
+                      Saved responses include the original question, model answer, and citations.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="button--ghost"
+                    onClick={() => setIsAiAnswersExpanded((prev) => !prev)}
+                  >
+                    {isAiAnswersExpanded ? 'Collapse' : 'Show answers'}
+                  </button>
+                </div>
+
+                {aiAnswersError && <p className="error-banner">{aiAnswersError}</p>}
+
+                {isAiAnswersLoading ? (
+                  <div className="forum-card__status">Loading AI answers...</div>
+                ) : (
+                  isAiAnswersExpanded && (
+                    <div className="scroll-panel">
+                      <AiAnswerList answers={aiAnswers} />
+                    </div>
+                  )
+                )}
+
+                {!isAiAnswersExpanded && !isAiAnswersLoading && (
+                  <p className="forum-card__status forum-card__status--compact">
+                    Answer history is collapsed.
+                  </p>
+                )}
+              </section>
+
+              {SHOW_RETRIEVAL_DEBUG_PANEL && id && (
+                <RetrievalDebugPanel threadId={id} hasSources={sources.length > 0} />
+              )}
+            </aside>
+          </div>
+        )}
       </div>
-
-      <h1>Thread details</h1>
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {isLoading ? (
-        <p>Loading thread...</p>
-      ) : !thread ? (
-        <p>Thread not found.</p>
-      ) : (
-        <>
-          <article
-            style={{
-              border: '1px solid #ccc',
-              borderRadius: '8px',
-              padding: '1.5rem',
-              marginBottom: '2rem',
-            }}
-          >
-            <h2>{thread.title}</h2>
-            <p>{thread.content}</p>
-
-            <div style={{ marginTop: '1rem', color: '#555' }}>
-              {'author' in thread && thread.author ? (
-                <small>Author: @{thread.author.username}</small>
-              ) : (
-                <small>Author: Unknown</small>
-              )}
-              <br />
-              <small>Created: {new Date(thread.createdAt).toLocaleString()}</small>
-              <br />
-              <small>Updated: {new Date(thread.updatedAt).toLocaleString()}</small>
-            </div>
-
-            <div
-              style={{
-                marginTop: '1.5rem',
-                display: 'flex',
-                gap: '0.75rem',
-              }}
-            >
-              {thread.authorId === CURRENT_USER_ID && (
-                <>
-                  <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
-                    {isEditing ? 'Close edit' : 'Edit thread'}
-                  </button>
-
-                  <button type="button" onClick={handleDelete} disabled={isDeleting}>
-                    {isDeleting ? 'Deleting...' : 'Delete thread'}
-                  </button>
-                </>
-              )}
-            </div>
-
-            {isEditing && thread.authorId === CURRENT_USER_ID && (
-              <ThreadEditForm
-                initialTitle={thread.title}
-                initialContent={thread.content}
-                onSave={handleSave}
-                onCancel={() => setIsEditing(false)}
-              />
-            )}
-          </article>
-
-          <section
-            style={{
-              border: '1px solid #ccc',
-              borderRadius: '8px',
-              padding: '1.5rem',
-              marginBottom: '2rem',
-            }}
-          >
-            <h2>Evidence sources</h2>
-
-            <p style={{ color: '#555' }}>
-              These sources will later be used by the AI module for evidence-grounded answers.
-            </p>
-
-            {sourcesError && <p style={{ color: 'red' }}>{sourcesError}</p>}
-
-            {isSourcesLoading ? (
-              <p>Loading sources...</p>
-            ) : (
-              <SourceList
-                sources={sources}
-                canManageSources={thread.authorId === CURRENT_USER_ID}
-                onSourceDeleted={handleSourceDeleted}
-              />
-            )}
-
-            {id && thread.authorId === CURRENT_USER_ID && (
-              <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
-            )}
-          </section>
-
-          {id && (
-            <GroundedAiPanel
-              threadId={id}
-              hasSources={sources.length > 0}
-              onAnswerCreated={handleAiAnswerCreated}
-            />
-          )}
-
-          <section>
-            <h2>AI answers</h2>
-            {aiAnswersError && <p style={{ color: 'red' }}>{aiAnswersError}</p>}
-            {isAiAnswersLoading ? (
-              <p>Loading AI answers...</p>
-            ) : (
-              <AiAnswerList answers={aiAnswers} />
-            )}
-          </section>
-
-          {/* TODO:hide thus behind dev flag later! */}
-          {id && <RetrievalDebugPanel threadId={id} hasSources={sources.length > 0} />}
-
-          <section>
-            {commentsError && <p style={{ color: 'red' }}>{commentsError}</p>}
-
-            {isCommentsLoading ? (
-              <p>Loading replies...</p>
-            ) : id ? (
-              <CommentList
-                threadId={id}
-                comments={comments}
-                onCommentCreated={handleCommentCreated}
-                onCommentUpdated={handleCommentUpdated}
-                onCommentDeleted={handleCommentDeleted}
-              />
-            ) : (
-              <p>Missing thread id.</p>
-            )}
-
-            {id && <CommentForm threadId={id} onCommentCreated={handleCommentCreated} />}
-          </section>
-        </>
-      )}
     </main>
   );
 }
