@@ -13,7 +13,10 @@ import type { SourceDocument } from '../features/sources/types/source.types';
 import { SourceForm } from '../features/sources/components/SourceForm';
 import { SourceList } from '../features/sources/components/SourceList';
 import { RetrievalDebugPanel } from '../features/retrieval/components/RetrievalDebugPanel';
-import { GroundedAiPanel }  from '../features/ai/components/GroundedAiPanel';
+import { GroundedAiPanel } from '../features/ai/components/GroundedAiPanel';
+import { fetchAiAnswersByThreadId } from '../features/ai/api/aiApi';
+import type { GroundedAiAnswer } from '../features/ai/types/ai.types';
+import { AiAnswerList } from '../features/ai/components/AiAnswerList';
 
 const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
 
@@ -24,7 +27,9 @@ export function ThreadDetailsPage() {
   const [thread, setThread] = useState<Thread | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [sources, setSources] = useState<SourceDocument[]>([]);
-
+  const [aiAnswers, setAiAnswers] = useState<GroundedAiAnswer[]>([]);
+  const [aiAnswersError, setAiAnswersError] = useState('');
+  const [isAiAnswersLoading, setIsAiAnswersLoading] = useState(true);
   const [error, setError] = useState('');
   const [commentsError, setCommentsError] = useState('');
   const [sourcesError, setSourcesError] = useState('');
@@ -107,10 +112,34 @@ export function ThreadDetailsPage() {
     }
   }
 
+  async function loadAiAnswers() {
+    if (!id) {
+      setAiAnswersError('Missing thread id');
+      setIsAiAnswersLoading(false);
+      return;
+    }
+
+    try {
+      setAiAnswersError('');
+      setIsAiAnswersLoading(true);
+      const data = await fetchAiAnswersByThreadId(id);
+      setAiAnswers(data);
+    } catch (err) {
+      if (err instanceof Error) {
+        setAiAnswersError(err.message);
+      } else {
+        setAiAnswersError('Unknown error');
+      }
+    } finally {
+      setIsAiAnswersLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadThread();
     loadComments();
     loadSources();
+    loadAiAnswers();
   }, [id]);
 
   async function handleSave(data: { title: string; content: string }) {
@@ -178,6 +207,10 @@ export function ThreadDetailsPage() {
 
   function handleSourceDeleted(sourceId: string) {
     setSources((prev) => prev.filter((source) => source.id !== sourceId));
+  }
+
+  function handleAiAnswerCreated(answer: GroundedAiAnswer) {
+    setAiAnswers((prev) => [answer, ...prev]);
   }
 
   return (
@@ -280,8 +313,25 @@ export function ThreadDetailsPage() {
             )}
           </section>
 
-          {id && <GroundedAiPanel threadId={id} hasSources={sources.length > 0} />}
+          {id && (
+            <GroundedAiPanel
+              threadId={id}
+              hasSources={sources.length > 0}
+              onAnswerCreated={handleAiAnswerCreated}
+            />
+          )}
 
+          <section>
+            <h2>AI answers</h2>
+            {aiAnswersError && <p style={{ color: 'red' }}>{aiAnswersError}</p>}
+            {isAiAnswersLoading ? (
+              <p>Loading AI answers...</p>
+            ) : (
+              <AiAnswerList answers={aiAnswers} />
+            )}
+          </section>
+
+          {/* TODO:hide thus behind dev flag later! */}
           {id && <RetrievalDebugPanel threadId={id} hasSources={sources.length > 0} />}
 
           <section>

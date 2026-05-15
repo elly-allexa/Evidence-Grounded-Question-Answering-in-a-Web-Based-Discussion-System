@@ -139,6 +139,18 @@ export class SourcesService {
       throw new ForbiddenException('Only the thread author can delete attached sources');
     }
 
+    const aiAnswerCount = await this.prisma.aiAnswer.count({
+      where: {
+        threadId: source.thread.id,
+      },
+    });
+
+    if (aiAnswerCount > 0) {
+      throw new ForbiddenException(
+        'Sources cannot be deleted after an AI answer has been generated.',
+      );
+    }
+
     return this.prisma.sourceDocument.delete({
       where: { id: sourceId },
     });

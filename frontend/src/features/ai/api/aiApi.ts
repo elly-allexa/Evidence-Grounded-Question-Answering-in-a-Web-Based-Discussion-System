@@ -42,3 +42,16 @@ export async function createGroundedAiAnswer(
 
   return response.json();
 }
+
+export async function fetchAiAnswersByThreadId(threadId: string): Promise<GroundedAiAnswer[]> {
+  const response = await fetch(`${API_URL}/threads/${threadId}/ai-answers`);
+
+  if (!response.ok) {
+    throw await buildApiError(
+      response,
+      `Failed to fetch AI answers for thread ${threadId}: ${response.status}`,
+    );
+  }
+
+  return response.json();
+}
