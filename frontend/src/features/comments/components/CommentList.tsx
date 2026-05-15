@@ -85,36 +85,18 @@ export function CommentList({
     return (
       <article
         key={comment.id}
-        style={{
-          border: '1px solid #ddd',
-          borderRadius: '8px',
-          padding: '1rem',
-          marginLeft: `${visualDepth * 24}px`,
-          marginTop: '1rem',
-        }}
+        className={`comment-card ${isDeepBranch ? 'comment-card--deep' : ''}`}
+        style={{ marginLeft: `${visualDepth * 24}px`, marginTop: '1rem' }}
       >
-        {isDeepBranch && (
-          <div
-            style={{
-              marginBottom: '0.5rem',
-              padding: '0.5rem',
-              backgroundColor: '#f0f0f0',
-              borderRadius: '4px',
-              fontSize: '0.85rem',
-              color: '#666',
-            }}
-          >
-            ↩ Deep reply branch
-          </div>
-        )}
+        {isDeepBranch && <div className="comment-card__branch">↩ Deep reply branch</div>}
 
-        <div style={{ marginBottom: '0.5rem', color: '#444' }}>
+        <div className="comment-card__author">
           <strong>@{getDisplayUsername(comment.author)}</strong>
         </div>
 
         {!isEditing ? (
           <p
-            style={{ marginBottom: '0.75rem', fontStyle: comment.isDeleted ? 'italic' : 'normal' }}
+            className={`comment-card__body ${comment.isDeleted ? 'comment-card__body--deleted' : ''}`}
           >
             {comment.content}
           </p>
@@ -126,14 +108,14 @@ export function CommentList({
           />
         )}
 
-        <div style={{ color: '#666', fontSize: '0.9rem' }}>
+        <div className="comment-card__meta">
           <small>Posted: {new Date(comment.createdAt).toLocaleString()}</small>
           <br />
           <small>Updated: {new Date(comment.updatedAt).toLocaleString()}</small>
         </div>
 
         {!comment.isDeleted && !isEditing && (
-          <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="comment-card__actions">
             <button
               type="button"
               onClick={() =>
@@ -175,7 +157,7 @@ export function CommentList({
         )}
 
         {childReplies.length > 0 && (
-          <div style={{ marginTop: '0.5rem' }}>
+          <div className="comment-card__replies">
             {childReplies.map((reply) => renderComment(reply, depth + 1))}
           </div>
         )}
@@ -185,19 +167,19 @@ export function CommentList({
 
   if (topLevelComments.length === 0) {
     return (
-      <section style={{ marginTop: '2rem' }}>
+      <section className="discussion-section">
         <h3>Replies</h3>
-        {actionError && <p style={{ color: 'red' }}>{actionError}</p>}
+        {actionError && <p className="error-banner">{actionError}</p>}
         <p>No replies yet.</p>
       </section>
     );
   }
 
   return (
-    <section style={{ marginTop: '2rem' }}>
+    <section className="discussion-section">
       <h3>Replies</h3>
 
-      {actionError && <p style={{ color: 'red' }}>{actionError}</p>}
+      {actionError && <p className="error-banner">{actionError}</p>}
 
       <div>{topLevelComments.map((comment) => renderComment(comment))}</div>
     </section>

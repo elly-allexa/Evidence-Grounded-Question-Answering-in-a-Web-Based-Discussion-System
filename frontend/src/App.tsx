@@ -10,7 +10,10 @@ function App() {
         <nav className="app-nav">
           <div>
             <Link className="app-nav__brand" to="/">
-              🤖 MakeSense AI Forum
+              <span className="app-logo-frame">
+                <img src="/logo.png" alt="MakeSense AI Forum logo" className="app-logo" />
+              </span>
+              <span>MakeSense AI Forum</span>
             </Link>
             <p className="app-nav__subtitle">FER thesis demo</p>
           </div>

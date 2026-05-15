@@ -48,43 +48,37 @@ export function ThreadEditForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
+    <form className="thread-form thread-form--edit" onSubmit={handleSubmit}>
       <h3>Edit thread</h3>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="error-banner">{error}</p>}
 
-      <div style={{ marginBottom: '1rem' }}>
+      <div className="thread-form__field">
         <input
           type="text"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           maxLength={MAX_THREAD_TITLE_LENGTH}
-          style={{ width: '100%', padding: '0.5rem' }}
+          className="thread-form__input"
           disabled={isSaving}
         />
       </div>
 
-      <div style={{ marginBottom: '1rem' }}>
+      <div className="thread-form__field">
         <textarea
           value={content}
           onChange={(event) => setContent(event.target.value)}
           maxLength={MAX_THREAD_CONTENT_LENGTH}
           rows={8}
-          style={{ width: '100%', padding: '0.5rem' }}
+          className="thread-form__textarea"
           disabled={isSaving}
         />
-        <div
-          style={{
-            textAlign: 'right',
-            fontSize: '0.85rem',
-            color: content.length > MAX_THREAD_CONTENT_LENGTH ? 'red' : '#666',
-          }}
-        >
+        <div className="field-meta">
           {content.length}/{MAX_THREAD_CONTENT_LENGTH}
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0.75rem' }}>
+      <div className="action-row">
         <button type="submit" disabled={isSaving}>
           {isSaving ? 'Saving...' : 'Save changes'}
         </button>

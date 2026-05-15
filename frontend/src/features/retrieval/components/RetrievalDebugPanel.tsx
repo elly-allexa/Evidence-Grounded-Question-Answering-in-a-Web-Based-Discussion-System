@@ -54,35 +54,23 @@ export function RetrievalDebugPanel({ threadId, hasSources }: RetrievalDebugPane
   }
 
   return (
-    <section
-      style={{
-        border: '1px solid #ccc',
-        borderRadius: '8px',
-        padding: '1.5rem',
-        marginBottom: '2rem',
-      }}
-    >
+    <section className="forum-card retrieval-debug-panel">
       <h2>Retrieval debug</h2>
 
-      <p style={{ color: '#555' }}>
+      <p className="card-heading__text">
         This does not call AI yet. It only shows which source chunks would be sent to the AI model
         later.
       </p>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p className="error-banner">{error}</p>}
 
-      <form onSubmit={handleSubmit}>
+      <form className="retrieval-debug-panel__form" onSubmit={handleSubmit}>
         <textarea
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           rows={3}
           placeholder="Ask a question to test retrieval..."
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            boxSizing: 'border-box',
-            marginBottom: '0.75rem',
-          }}
+          className="panel-textarea"
           disabled={isRetrieving}
         />
 
@@ -92,20 +80,12 @@ export function RetrievalDebugPanel({ threadId, hasSources }: RetrievalDebugPane
       </form>
 
       {chunks.length > 0 && (
-        <div style={{ marginTop: '1.5rem' }}>
+        <div className="retrieval-debug-panel__results">
           <h3>Retrieved chunks</h3>
 
           {chunks.map((chunk) => (
-            <article
-              key={chunk.chunkId}
-              style={{
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                padding: '1rem',
-                marginBottom: '1rem',
-              }}
-            >
-              <div style={{ color: '#666', fontSize: '0.9rem' }}>
+            <article key={chunk.chunkId} className="retrieval-debug-panel__chunk">
+              <div className="retrieval-debug-panel__meta">
                 <strong>{chunk.sourceTitle}</strong>
                 <br />
                 <small>Chunk #{chunk.chunkIndex}</small>
@@ -113,7 +93,7 @@ export function RetrievalDebugPanel({ threadId, hasSources }: RetrievalDebugPane
                 <small>Score: {chunk.score.toFixed(4)}</small>
               </div>
 
-              <p style={{ whiteSpace: 'pre-wrap' }}>{chunk.text}</p>
+              <p className="retrieval-debug-panel__text">{chunk.text}</p>
             </article>
           ))}
         </div>

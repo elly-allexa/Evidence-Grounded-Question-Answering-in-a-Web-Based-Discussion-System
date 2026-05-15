@@ -19,7 +19,7 @@ import type { GroundedAiAnswer } from '../features/ai/types/ai.types';
 import { AiAnswerList } from '../features/ai/components/AiAnswerList';
 
 const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
-const SHOW_RETRIEVAL_DEBUG_PANEL = import.meta.env.DEV;
+const SHOW_RETRIEVAL_DEBUG_PANEL = false;
 
 export function ThreadDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -341,7 +341,7 @@ export function ThreadDetailsPage() {
 
             <aside className="thread-layout__sidebar">
               {id && (
-                <section className="forum-card">
+                <section>
                   <GroundedAiPanel
                     threadId={id}
                     hasSources={sources.length > 0}

@@ -54,45 +54,37 @@ export function ThreadForm({ onThreadCreated }: ThreadFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginBottom: '2rem' }}>
-      <h2>Create thread</h2>
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      <div style={{ marginBottom: '1rem' }}>
+    <form className="thread-form" onSubmit={handleSubmit}>
+      <div className="thread-form__field">
         <input
           type="text"
           placeholder="Thread title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           maxLength={MAX_THREAD_TITLE_LENGTH}
-          style={{ width: '100%', padding: '0.5rem' }}
+          className="thread-form__input"
           disabled={isSubmitting}
         />
       </div>
 
-      <div style={{ marginBottom: '1rem' }}>
+      {error && <p className="error-banner">{error}</p>}
+
+      <div className="thread-form__field">
         <textarea
           placeholder="Thread body"
           value={content}
           onChange={(event) => setContent(event.target.value)}
           maxLength={MAX_THREAD_CONTENT_LENGTH}
           rows={6}
-          style={{ width: '100%', padding: '0.5rem' }}
+          className="thread-form__textarea"
           disabled={isSubmitting}
         />
-        <div
-          style={{
-            textAlign: 'right',
-            fontSize: '0.85rem',
-            color: content.length > MAX_THREAD_CONTENT_LENGTH ? 'red' : '#666',
-          }}
-        >
+        <div className="field-meta">
           {content.length}/{MAX_THREAD_CONTENT_LENGTH}
         </div>
       </div>
 
-      <button type="submit" disabled={isSubmitting}>
+      <button className="thread-form__submit" type="submit" disabled={isSubmitting}>
         {isSubmitting ? 'Creating...' : 'Create'}
       </button>
     </form>

@@ -27,13 +27,43 @@ export function ThreadsPage() {
   }, []);
 
   return (
-    <main style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
-      <h1>Threads</h1>
+    <main className="forum-page">
+      <div className="forum-page__inner threads-page">
+        <header className="forum-page__header">
+          <div>
+            <p className="forum-page__eyebrow">Forum index</p>
+            <h1>Threads</h1>
+          </div>
+        </header>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+        {error && <p className="error-banner">{error}</p>}
 
-      <ThreadForm onThreadCreated={loadThreads} />
-      <ThreadsList threads={threads} />
+        <section className="forum-card threads-page__compose">
+          <div className="card-heading">
+            <div>
+              <h2>Create thread</h2>
+              <p className="card-heading__text">
+                Start a discussion thread for evidence, debate, or AI-assisted review.
+              </p>
+            </div>
+          </div>
+
+          <ThreadForm onThreadCreated={loadThreads} />
+        </section>
+
+        <section className="forum-card threads-page__list">
+          <div className="card-heading">
+            <div>
+              <h2>Thread list</h2>
+              <p className="card-heading__text">
+                Browse ongoing discussions and open the ones you want to review.
+              </p>
+            </div>
+          </div>
+
+          <ThreadsList threads={threads} />
+        </section>
+      </div>
     </main>
   );
 }

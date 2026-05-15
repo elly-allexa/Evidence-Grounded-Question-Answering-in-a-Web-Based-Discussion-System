@@ -37,32 +37,21 @@ export function CommentEditForm({ initialContent, onSave, onCancel }: CommentEdi
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginTop: '0.75rem' }}>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <form className="comment-form comment-form--edit" onSubmit={handleSubmit}>
+      {error && <p className="error-banner">{error}</p>}
 
       <textarea
         value={content}
         onChange={(event) => setContent(event.target.value)}
         rows={4}
         maxLength={3000}
-        style={{
-          width: '100%',
-          padding: '0.5rem',
-          marginBottom: '0.5rem',
-          resize: 'vertical',
-          minHeight: '100px',
-          maxHeight: '260px',
-          overflowY: 'auto',
-          boxSizing: 'border-box',
-        }}
+        className="comment-form__textarea"
         disabled={isSaving}
       />
 
-      <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.9rem' }}>
-        {content.length}/3000 characters
-      </div>
+      <div className="field-meta comment-form__meta">{content.length}/3000 characters</div>
 
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div className="action-row">
         <button type="submit" disabled={isSaving}>
           {isSaving ? 'Saving...' : 'Save'}
         </button>

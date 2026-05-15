@@ -57,8 +57,8 @@ export function CommentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginTop: '1rem' }}>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <form className="comment-form" onSubmit={handleSubmit}>
+      {error && <p className="error-banner">{error}</p>}
 
       <textarea
         value={content}
@@ -66,24 +66,13 @@ export function CommentForm({
         rows={4}
         maxLength={3000}
         placeholder={placeholder}
-        style={{
-          width: '100%',
-          padding: '0.75rem',
-          marginBottom: '0.5rem',
-          resize: 'vertical',
-          minHeight: '120px',
-          maxHeight: '300px',
-          overflowY: 'auto',
-          boxSizing: 'border-box',
-        }}
+        className="comment-form__textarea"
         disabled={isSubmitting}
       />
 
-      <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.9rem' }}>
-        {content.length}/3000 characters
-      </div>
+      <div className="field-meta comment-form__meta">{content.length}/3000 characters</div>
 
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div className="action-row">
         <button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Posting...' : submitLabel}
         </button>
