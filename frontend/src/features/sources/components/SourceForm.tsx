@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MAX_SOURCE_TEXT_LENGTH, MAX_SOURCE_TITLE_LENGTH } from '../../../config/limits';
+import { MAX_SOURCE_CONTENT_LENGTH, MAX_SOURCE_TITLE_LENGTH } from '../../../config/limits';
 import { createSource } from '../api/sourcesApi';
 import type { SourceDocument, SourceType } from '../types/source.types';
 
@@ -31,8 +31,8 @@ export function SourceForm({ threadId, onSourceCreated }: SourceFormProps) {
       return;
     }
 
-    if (normalizedContent.length > MAX_SOURCE_TEXT_LENGTH) {
-      setError(`Source text must be at most ${MAX_SOURCE_TEXT_LENGTH} characters.`);
+    if (normalizedContent.length > MAX_SOURCE_CONTENT_LENGTH) {
+      setError(`Source text must be at most ${MAX_SOURCE_CONTENT_LENGTH} characters.`);
       return;
     }
 
@@ -111,7 +111,7 @@ export function SourceForm({ threadId, onSourceCreated }: SourceFormProps) {
         <textarea
           placeholder="Paste source text here..."
           value={contentText}
-          maxLength={MAX_SOURCE_TEXT_LENGTH}
+          maxLength={MAX_SOURCE_CONTENT_LENGTH}
           onChange={(event) => setContentText(event.target.value)}
           rows={10}
           style={{
@@ -130,10 +130,10 @@ export function SourceForm({ threadId, onSourceCreated }: SourceFormProps) {
           style={{
             textAlign: 'right',
             fontSize: '0.85rem',
-            color: contentText.length > MAX_SOURCE_TEXT_LENGTH ? 'red' : '#666',
+            color: contentText.length > MAX_SOURCE_CONTENT_LENGTH ? 'red' : '#666',
           }}
         >
-          {contentText.length}/{MAX_SOURCE_TEXT_LENGTH}
+          {contentText.length}/{MAX_SOURCE_CONTENT_LENGTH}
         </div>
       </div>
 

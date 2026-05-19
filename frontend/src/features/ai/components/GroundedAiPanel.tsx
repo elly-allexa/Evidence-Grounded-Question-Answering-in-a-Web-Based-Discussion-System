@@ -6,10 +6,16 @@ import type { GroundedAiAnswer } from '../types/ai.types';
 type GroundedAiPanelProps = {
   threadId: string;
   hasSources: boolean;
+  canAskAi: boolean;
   onAnswerCreated: (answer: GroundedAiAnswer) => void;
 };
 
-export function GroundedAiPanel({ threadId, hasSources, onAnswerCreated }: GroundedAiPanelProps) {
+export function GroundedAiPanel({
+  threadId,
+  hasSources,
+  canAskAi,
+  onAnswerCreated,
+}: GroundedAiPanelProps) {
   const [question, setQuestion] = useState('');
   const [error, setError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -31,6 +37,11 @@ export function GroundedAiPanel({ threadId, hasSources, onAnswerCreated }: Groun
 
     if (!hasSources) {
       setError('No evidence sources attached. Add sources before asking AI.');
+      return;
+    }
+
+    if (!canAskAi) {
+      setError('Only the thread author can ask AI questions for this thread.');
       return;
     }
 
@@ -88,12 +99,14 @@ export function GroundedAiPanel({ threadId, hasSources, onAnswerCreated }: Groun
 
         <div className="action-row action-row--spread">
           <p className="forum-card__status forum-card__status--compact" id="ai-question-status">
-            {hasSources
-              ? 'Ask a question grounded in the attached evidence.'
-              : 'Add sources before asking AI.'}
+            {!canAskAi
+              ? 'Only the thread author can ask AI questions.'
+              : hasSources
+                ? 'Ask a question grounded in the attached evidence.'
+                : 'Add sources before asking AI.'}
           </p>
 
-          <button type="submit" disabled={isGenerating || !hasSources}>
+          <button type="submit" disabled={isGenerating || !hasSources || !canAskAi}>
             {isGenerating ? 'Generating answer...' : 'Ask AI'}
           </button>
         </div>

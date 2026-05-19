@@ -15,7 +15,6 @@ function App() {
               </span>
               <span>MakeSense AI Forum</span>
             </Link>
-            <p className="app-nav__subtitle">FER thesis demo</p>
           </div>
 
           <div className="app-nav__links">

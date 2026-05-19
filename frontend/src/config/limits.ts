@@ -1,8 +1,15 @@
-export const MAX_THREAD_CONTENT_LENGTH = 5000;
 export const MAX_THREAD_TITLE_LENGTH = 200;
+export const MAX_THREAD_CONTENT_LENGTH = 6000;
+
 export const MAX_COMMENT_LENGTH = 3000;
 
 export const MAX_SOURCE_TITLE_LENGTH = 200;
-export const MAX_SOURCE_TEXT_LENGTH = 20000;
+export const MAX_SOURCE_CONTENT_LENGTH = 20000;
+export const MAX_SOURCES_PER_THREAD = 5;
+
+export const MAX_AI_QUESTION_LENGTH = 2000;
 export const DEFAULT_AI_RETRIEVAL_LIMIT = 5;
-export const MAX_AI_QUESTION_LENGTH = 1000;
+export const MAX_AI_RETRIEVAL_LIMIT = 10;
+
+export const THREAD_PAGE_SIZE = 20;
+export const HOME_FEED_THREAD_LIMIT = 6;

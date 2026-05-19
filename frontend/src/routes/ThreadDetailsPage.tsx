@@ -29,18 +29,20 @@ export function ThreadDetailsPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [sources, setSources] = useState<SourceDocument[]>([]);
   const [aiAnswers, setAiAnswers] = useState<GroundedAiAnswer[]>([]);
-  const [aiAnswersError, setAiAnswersError] = useState('');
-  const [isAiAnswersLoading, setIsAiAnswersLoading] = useState(true);
+
   const [error, setError] = useState('');
   const [commentsError, setCommentsError] = useState('');
   const [sourcesError, setSourcesError] = useState('');
-  const [isAiAnswersExpanded, setIsAiAnswersExpanded] = useState(true);
+  const [aiAnswersError, setAiAnswersError] = useState('');
 
   const [isLoading, setIsLoading] = useState(true);
   const [isCommentsLoading, setIsCommentsLoading] = useState(true);
   const [isSourcesLoading, setIsSourcesLoading] = useState(true);
+  const [isAiAnswersLoading, setIsAiAnswersLoading] = useState(true);
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAiAnswersExpanded, setIsAiAnswersExpanded] = useState(true);
 
   async function loadThread() {
     if (!id) {
@@ -53,6 +55,7 @@ export function ThreadDetailsPage() {
     try {
       setError('');
       setIsLoading(true);
+
       const data = await fetchThreadById(id);
       setThread(data);
     } catch (err) {
@@ -78,6 +81,7 @@ export function ThreadDetailsPage() {
     try {
       setCommentsError('');
       setIsCommentsLoading(true);
+
       const data = await fetchCommentsByThreadId(id);
       setComments(data);
     } catch (err) {
@@ -101,6 +105,7 @@ export function ThreadDetailsPage() {
     try {
       setSourcesError('');
       setIsSourcesLoading(true);
+
       const data = await fetchSourcesByThreadId(id);
       setSources(data);
     } catch (err) {
@@ -124,6 +129,7 @@ export function ThreadDetailsPage() {
     try {
       setAiAnswersError('');
       setIsAiAnswersLoading(true);
+
       const data = await fetchAiAnswersByThreadId(id);
       setAiAnswers(data);
     } catch (err) {
@@ -169,6 +175,7 @@ export function ThreadDetailsPage() {
     try {
       setError('');
       setIsDeleting(true);
+
       await deleteThread(id);
       navigate('/threads');
     } catch (err) {
@@ -184,31 +191,29 @@ export function ThreadDetailsPage() {
 
   function handleCommentCreated(newComment: Comment) {
     setComments((prev) => [...prev, newComment]);
+    void loadThread();
   }
 
   function handleCommentUpdated(updatedComment: Comment) {
     setComments((prev) =>
       prev.map((comment) => (comment.id === updatedComment.id ? updatedComment : comment)),
     );
+    void loadThread();
   }
 
-  function handleCommentDeleted(deletedCommentId: string, replacement?: Comment) {
-    if (replacement) {
-      setComments((prev) =>
-        prev.map((comment) => (comment.id === deletedCommentId ? replacement : comment)),
-      );
-      return;
-    }
-
-    setComments((prev) => prev.filter((comment) => comment.id !== deletedCommentId));
+  async function handleCommentsChanged() {
+    await loadComments();
+    await loadThread();
   }
 
   function handleSourceCreated(newSource: SourceDocument) {
     setSources((prev) => [newSource, ...prev]);
+    void loadThread();
   }
 
   function handleSourceDeleted(sourceId: string) {
     setSources((prev) => prev.filter((source) => source.id !== sourceId));
+    void loadThread();
   }
 
   function handleAiAnswerCreated(answer: GroundedAiAnswer) {
@@ -242,12 +247,14 @@ export function ThreadDetailsPage() {
                 <div className="thread-hero__header">
                   <div>
                     <h2>{thread.title}</h2>
+
                     <p className="thread-hero__meta">
                       {'author' in thread && thread.author ? (
                         <span>@{thread.author.username}</span>
                       ) : (
                         <span>Unknown author</span>
                       )}
+
                       <span>Created {new Date(thread.createdAt).toLocaleString()}</span>
                       <span>Updated {new Date(thread.updatedAt).toLocaleString()}</span>
                     </p>
@@ -329,7 +336,7 @@ export function ThreadDetailsPage() {
                     comments={comments}
                     onCommentCreated={handleCommentCreated}
                     onCommentUpdated={handleCommentUpdated}
-                    onCommentDeleted={handleCommentDeleted}
+                    onCommentsChanged={handleCommentsChanged}
                   />
                 ) : (
                   <div className="forum-card__status">Missing thread id.</div>
@@ -344,7 +351,8 @@ export function ThreadDetailsPage() {
                 <section>
                   <GroundedAiPanel
                     threadId={id}
-                    hasSources={sources.length > 0}
+                        hasSources={sources.length > 0}
+                        canAskAi={thread.authorId === CURRENT_USER_ID}
                     onAnswerCreated={handleAiAnswerCreated}
                   />
                 </section>
@@ -364,7 +372,7 @@ export function ThreadDetailsPage() {
                     className="button--ghost"
                     onClick={() => setIsAiAnswersExpanded((prev) => !prev)}
                   >
-                    {isAiAnswersExpanded ? 'Collapse' : 'Show answers'}
+                    {isAiAnswersExpanded ? 'Close' : 'Show answers'}
                   </button>
                 </div>
 

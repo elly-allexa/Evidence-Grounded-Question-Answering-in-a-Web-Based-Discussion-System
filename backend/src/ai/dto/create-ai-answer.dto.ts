@@ -1,15 +1,15 @@
 import { IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
-import { MAX_AI_QUESTION_LENGTH, MAX_AI_RETRIEVAL_LIMIT } from 'src/config/limits'; 
+import { APP_LIMITS } from 'src/common/config/limits';
 
 export class CreateAiAnswerDto {
   @IsString()
   @IsNotEmpty()
-  @MaxLength(MAX_AI_QUESTION_LENGTH)
+  @MaxLength(APP_LIMITS.MAX_AI_QUESTION_LENGTH)
   question!: string;
 
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(MAX_AI_RETRIEVAL_LIMIT)
+  @Max(APP_LIMITS.MAX_AI_RETRIEVAL_LIMIT)
   limit?: number;
 }

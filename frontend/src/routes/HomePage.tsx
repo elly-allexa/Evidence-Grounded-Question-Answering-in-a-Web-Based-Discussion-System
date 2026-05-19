@@ -1,5 +1,3 @@
-import { HealthStatus } from '../features/health/components/HealthStatus';
-
 export function HomePage() {
   return (
     <main className="forum-page">
@@ -11,17 +9,6 @@ export function HomePage() {
             A polished demo forum for evidence-based AI answers, thread discussion, and
             source-backed citations.
           </p>
-        </section>
-
-        <section className="forum-card home-page__panel">
-          <h2>Frontend foundation is ready</h2>
-          <p className="card-heading__text">
-            Use the threads view to review discussions, attached evidence, and grounded AI answers.
-          </p>
-
-          <div className="home-page__status">
-            <HealthStatus />
-          </div>
         </section>
       </div>
     </main>

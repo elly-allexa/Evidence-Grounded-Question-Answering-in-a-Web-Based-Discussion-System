@@ -77,7 +77,7 @@ export async function updateComment(commentId: string, data: UpdateCommentInput)
   return response.json();
 }
 
-export async function deleteComment(commentId: string): Promise<Comment | { id: string } | void> {
+export async function deleteComment(commentId: string): Promise<void> {
   const response = await fetch(`${API_URL}/comments/${commentId}`, {
     method: 'DELETE',
     headers: {
@@ -90,11 +90,5 @@ export async function deleteComment(commentId: string): Promise<Comment | { id: 
       response,
       `Failed to delete comment ${commentId}: ${response.status}`,
     );
-  }
-
-  try {
-    return await response.json();
-  } catch {
-    return;
   }
 }

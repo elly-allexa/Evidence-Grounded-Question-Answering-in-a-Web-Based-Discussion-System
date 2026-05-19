@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { deleteComment, updateComment } from '../api/commentsApi';
 import type { Comment } from '../types/comment.types';
 import { CommentEditForm } from './CommentEditForm';
@@ -14,7 +14,7 @@ type CommentListProps = {
   comments: Comment[];
   onCommentCreated: (newComment: Comment) => void;
   onCommentUpdated: (updatedComment: Comment) => void;
-  onCommentDeleted: (deletedCommentId: string, replacement?: Comment) => void;
+  onCommentsChanged: () => Promise<void> | void;
 };
 
 export function CommentList({
@@ -22,11 +22,23 @@ export function CommentList({
   comments,
   onCommentCreated,
   onCommentUpdated,
-  onCommentDeleted,
+  onCommentsChanged,
 }: CommentListProps) {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
+
+  useEffect(() => {
+    if (!actionError) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setActionError('');
+    }, 30000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [actionError]);
 
   const commentsByParent = useMemo(() => {
     const grouped = new Map<string | null, Comment[]>();
@@ -44,9 +56,19 @@ export function CommentList({
   const topLevelComments = commentsByParent.get(null) ?? [];
 
   async function handleSave(commentId: string, content: string) {
-    const updated = await updateComment(commentId, { content });
-    onCommentUpdated(updated);
-    setEditingCommentId(null);
+    try {
+      setActionError('');
+
+      const updated = await updateComment(commentId, { content });
+      onCommentUpdated(updated);
+      setEditingCommentId(null);
+    } catch (err) {
+      if (err instanceof Error) {
+        setActionError(err.message);
+      } else {
+        setActionError('Unknown error');
+      }
+    }
   }
 
   async function handleDelete(commentId: string) {
@@ -58,13 +80,18 @@ export function CommentList({
 
     try {
       setActionError('');
-      const result = await deleteComment(commentId);
 
-      if (result && typeof result === 'object' && 'content' in result) {
-        onCommentDeleted(commentId, result as Comment);
-      } else {
-        onCommentDeleted(commentId);
+      await deleteComment(commentId);
+
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null);
       }
+
+      if (replyingToCommentId === commentId) {
+        setReplyingToCommentId(null);
+      }
+
+      await onCommentsChanged();
     } catch (err) {
       if (err instanceof Error) {
         setActionError(err.message);
@@ -96,7 +123,9 @@ export function CommentList({
 
         {!isEditing ? (
           <p
-            className={`comment-card__body ${comment.isDeleted ? 'comment-card__body--deleted' : ''}`}
+            className={`comment-card__body ${
+              comment.isDeleted ? 'comment-card__body--deleted' : ''
+            }`}
           >
             {comment.content}
           </p>

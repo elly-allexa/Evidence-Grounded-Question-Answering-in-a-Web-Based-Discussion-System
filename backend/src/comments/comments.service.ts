@@ -5,10 +5,21 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/database/prisma.service';
+import { Prisma } from '@prisma/client';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
 const DEFAULT_COMMENT_AUTHOR_EMAIL = 'demo@fer.local';
+
+const commentInclude = {
+  author: {
+    select: {
+      id: true,
+      username: true,
+      email: true,
+    },
+  },
+};
 
 @Injectable()
 export class CommentsService {
@@ -35,6 +46,44 @@ export class CommentsService {
     return author;
   }
 
+  private async cleanupDeletedParentChain(
+    tx: Prisma.TransactionClient,
+    parentId: string | null,
+  ) {
+    let currentParentId = parentId;
+
+    while (currentParentId) {
+      const parent = await tx.comment.findUnique({
+        where: { id: currentParentId },
+        select: {
+          id: true,
+          parentId: true,
+          isDeleted: true,
+        },
+      });
+
+      if (!parent || !parent.isDeleted) {
+        break;
+      }
+
+      const childCount = await tx.comment.count({
+        where: {
+          parentId: parent.id,
+        },
+      });
+
+      if (childCount > 0) {
+        break;
+      }
+
+      await tx.comment.delete({
+        where: { id: parent.id },
+      });
+
+      currentParentId = parent.parentId;
+    }
+  }
+
   async findByThreadId(threadId: string) {
     const thread = await this.prisma.thread.findUnique({
       where: { id: threadId },
@@ -47,14 +96,7 @@ export class CommentsService {
     return this.prisma.comment.findMany({
       where: { threadId },
       orderBy: { createdAt: 'asc' },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-          },
-        },
-      },
+      include: commentInclude,
     });
   }
 
@@ -85,21 +127,25 @@ export class CommentsService {
       }
     }
 
-    return this.prisma.comment.create({
-      data: {
-        content: createCommentDto.content,
-        threadId,
-        authorId: author.id,
-        parentId: createCommentDto.parentId ?? null,
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      const comment = await tx.comment.create({
+        data: {
+          threadId,
+          authorId: author.id,
+          content: createCommentDto.content,
+          parentId: createCommentDto.parentId ?? null,
         },
-      },
+        include: commentInclude,
+      });
+
+      await tx.thread.update({
+        where: { id: threadId },
+        data: {
+          updatedAt: new Date(),
+        },
+      });
+
+      return comment;
     });
   }
 
@@ -122,21 +168,25 @@ export class CommentsService {
       throw new ForbiddenException('You cannot edit a deleted comment');
     }
 
-    return this.prisma.comment.update({
-      where: { id: commentId },
-      data: {
-        ...(updateCommentDto.content !== undefined && {
-          content: updateCommentDto.content,
-        }),
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      const updatedComment = await tx.comment.update({
+        where: { id: commentId },
+        data: {
+          ...(updateCommentDto.content !== undefined && {
+            content: updateCommentDto.content,
+          }),
         },
-      },
+        include: commentInclude,
+      });
+
+      await tx.thread.update({
+        where: { id: comment.threadId },
+        data: {
+          updatedAt: new Date(),
+        },
+      });
+
+      return updatedComment;
     });
   }
 
@@ -145,13 +195,6 @@ export class CommentsService {
 
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
-      include: {
-        replies: {
-          select: {
-            id: true,
-          },
-        },
-      },
     });
 
     if (!comment) {
@@ -162,26 +205,55 @@ export class CommentsService {
       throw new ForbiddenException('You can delete only your own comments');
     }
 
-    if (comment.replies.length > 0) {
-      return this.prisma.comment.update({
-        where: { id: commentId },
-        data: {
-          content: '[deleted]',
-          isDeleted: true,
-        },
-        include: {
-          author: {
-            select: {
-              id: true,
-              username: true,
-            },
+    const childCount = await this.prisma.comment.count({
+      where: {
+        parentId: commentId,
+      },
+    });
+
+    return this.prisma.$transaction(async (tx) => {
+      if (childCount > 0) {
+        const softDeleted = await tx.comment.update({
+          where: { id: commentId },
+          data: {
+            content: '[deleted]',
+            isDeleted: true,
           },
+          include: commentInclude,
+        });
+
+        await tx.thread.update({
+          where: { id: comment.threadId },
+          data: {
+            updatedAt: new Date(),
+          },
+        });
+
+        return {
+          mode: 'soft',
+          comment: softDeleted,
+        };
+      }
+
+      const parentId = comment.parentId;
+
+      await tx.comment.delete({
+        where: { id: commentId },
+      });
+
+      await this.cleanupDeletedParentChain(tx, parentId);
+
+      await tx.thread.update({
+        where: { id: comment.threadId },
+        data: {
+          updatedAt: new Date(),
         },
       });
-    }
 
-    return this.prisma.comment.delete({
-      where: { id: commentId },
+      return {
+        mode: 'hard',
+        deletedCommentId: commentId,
+      };
     });
   }
 }

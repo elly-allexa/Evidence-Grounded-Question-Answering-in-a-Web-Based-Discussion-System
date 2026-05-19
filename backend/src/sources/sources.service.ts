@@ -1,7 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateSourceDto } from './dto/create-source.dto';
 import { SourceChunkingService } from './chunking/source-chunking.service';
+import { APP_LIMITS } from 'src/common/config/limits';
 
 const DEFAULT_SOURCE_AUTHOR_EMAIL = 'demo@fer.local';
 
@@ -81,6 +82,16 @@ export class SourcesService {
       throw new ForbiddenException('Only the thread author can attach sources for now');
     }
 
+    const sourceCount = await this.prisma.sourceDocument.count({
+      where: { threadId },
+    });
+
+    if (sourceCount >= APP_LIMITS.MAX_SOURCES_PER_THREAD) {
+      throw new ConflictException(
+        `A thread can have at most ${APP_LIMITS.MAX_SOURCES_PER_THREAD} evidence sources.`,
+      );
+    }
+
     const chunks = this.sourceChunkingService.splitIntoChunks(createSourceDto.contentText);
 
     return this.prisma.$transaction(async (tx) => {
@@ -109,6 +120,13 @@ export class SourcesService {
           })),
         });
       }
+
+      await tx.thread.update({
+        where: { id: threadId },
+        data: {
+          updatedAt: new Date(),
+        },
+      });
 
       return tx.sourceDocument.findUniqueOrThrow({
         where: { id: source.id },
