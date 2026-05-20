@@ -5,16 +5,17 @@ type ThreadsListProps = {
   threads: Thread[];
 };
 
-function truncateContent(content: string, maxLength: number = 100): string {
+function truncateContent(content: string, maxLength: number = 140): string {
   if (content.length <= maxLength) {
     return content;
   }
-  return content.substring(0, maxLength) + '...';
+
+  return `${content.substring(0, maxLength)}...`;
 }
 
 export function ThreadsList({ threads }: ThreadsListProps) {
   if (threads.length === 0) {
-    return <p className="forum-card__status forum-card__status--compact">No threads yet!</p>;
+    return <p className="forum-card__status forum-card__status--compact">No threads found.</p>;
   }
 
   return (
@@ -34,7 +35,14 @@ export function ThreadsList({ threads }: ThreadsListProps) {
               ) : (
                 <span>By unknown</span>
               )}
+
               <span>Created: {new Date(thread.createdAt).toLocaleDateString()}</span>
+
+              <span>{thread._count?.comments ?? 0} comments</span>
+
+              <span>{thread._count?.sources ?? 0} sources</span>
+
+              <span>{thread._count?.aiAnswers ?? 0} AI answers</span>
             </div>
           </li>
         ))}

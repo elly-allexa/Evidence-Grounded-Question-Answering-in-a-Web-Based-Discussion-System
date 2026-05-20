@@ -8,6 +8,7 @@ import type { Comment } from '../features/comments/types/comment.types';
 import { CommentForm } from '../features/comments/components/CommentForm';
 import { CommentList } from '../features/comments/components/CommentList';
 import { CURRENT_DEMO_USER_ID } from '../config/demoUser';
+import { MAX_SOURCES_PER_THREAD } from '../config/limits';
 import { fetchSourcesByThreadId } from '../features/sources/api/sourcesApi';
 import type { SourceDocument } from '../features/sources/types/source.types';
 import { SourceForm } from '../features/sources/components/SourceForm';
@@ -311,7 +312,13 @@ export function ThreadDetailsPage() {
 
                 {id && thread.authorId === CURRENT_USER_ID && (
                   <div className="forum-card__subsection">
-                    <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
+                    {sources.length >= MAX_SOURCES_PER_THREAD ? (
+                      <p className="forum-card__status">
+                        Source limit reached. A thread can have at most {MAX_SOURCES_PER_THREAD} evidence sources.
+                      </p>
+                    ) : (
+                      <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
+                    )}
                   </div>
                 )}
               </section>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { deleteSource } from '../api/sourcesApi';
 import type { SourceDocument } from '../types/source.types';
+import { SafeMarkdown } from '../../markdown/components/SafeMarkdown';
 
 type SourceListProps = {
   sources: SourceDocument[];
@@ -97,11 +98,11 @@ export function SourceList({ sources, canManageSources, onSourceDeleted }: Sourc
                 )}
               </div>
 
-              <p
+              <div
                 className={`source-card__preview ${isExpanded ? 'source-card__preview--expanded' : ''}`}
               >
-                {isExpanded ? source.contentText : truncateText(source.contentText)}
-              </p>
+                <SafeMarkdown content={isExpanded ? source.contentText : truncateText(source.contentText)} />
+              </div>
 
               {canManageSources && (
                 <div className="source-card__actions">

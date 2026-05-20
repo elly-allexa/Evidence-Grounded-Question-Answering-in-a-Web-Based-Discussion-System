@@ -1,8 +1,17 @@
-import type { Thread, CreateThreadInput, UpdateThreadInput } from '../types/thread.types';
+import type { CreateThreadInput, Thread, UpdateThreadInput } from '../types/thread.types';
 import { CURRENT_DEMO_USER_EMAIL } from '../../../config/demoUser';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const DEMO_USER_EMAIL = CURRENT_DEMO_USER_EMAIL ?? 'demo@fer.local';
+
+export type ThreadSort = 'newest' | 'popular' | 'active';
+
+export type FetchThreadsParams = {
+  search?: string;
+  sort?: ThreadSort;
+  limit?: number;
+  skip?: number;
+};
 
 function getDemoUserHeaders() {
   return {
@@ -24,14 +33,40 @@ async function buildApiError(response: Response, fallback: string): Promise<Erro
       return new Error(message);
     }
   } catch {
-    // Ignore JSON parse issues and use fallback.
+    // Ignore parse errors and use fallback.
   }
 
   return new Error(fallback);
 }
 
-export async function fetchThreads(): Promise<Thread[]> {
-  const response = await fetch(`${API_URL}/threads`);
+function buildThreadQueryString(params: FetchThreadsParams): string {
+  const searchParams = new URLSearchParams();
+
+  if (params.search && params.search.trim()) {
+    searchParams.set('search', params.search.trim());
+  }
+
+  if (params.sort) {
+    searchParams.set('sort', params.sort);
+  }
+
+  if (params.limit !== undefined) {
+    searchParams.set('limit', String(params.limit));
+  }
+
+  if (params.skip !== undefined) {
+    searchParams.set('skip', String(params.skip));
+  }
+
+  const queryString = searchParams.toString();
+
+  return queryString ? `?${queryString}` : '';
+}
+
+export async function fetchThreads(params: FetchThreadsParams = {}): Promise<Thread[]> {
+  const queryString = buildThreadQueryString(params);
+
+  const response = await fetch(`${API_URL}/threads${queryString}`);
 
   if (!response.ok) {
     throw await buildApiError(response, `Failed to fetch threads: ${response.status}`);
@@ -44,7 +79,7 @@ export async function fetchThreadById(id: string): Promise<Thread> {
   const response = await fetch(`${API_URL}/threads/${id}`);
 
   if (!response.ok) {
-    throw await buildApiError(response, `Failed to fetch thread id ${id}: ${response.status}`);
+    throw await buildApiError(response, `Failed to fetch thread ${id}: ${response.status}`);
   }
 
   return response.json();
@@ -58,7 +93,7 @@ export async function createThread(data: CreateThreadInput): Promise<Thread> {
   });
 
   if (!response.ok) {
-    throw await buildApiError(response, `Failed to create a thread: ${response.status}`);
+    throw await buildApiError(response, `Failed to create thread: ${response.status}`);
   }
 
   return response.json();

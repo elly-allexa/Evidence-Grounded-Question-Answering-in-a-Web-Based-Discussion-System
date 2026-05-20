@@ -1,6 +1,15 @@
 import type { CreateAiAnswerInput, GroundedAiAnswer } from '../types/ai.types';
+import { CURRENT_DEMO_USER_EMAIL } from '../../../config/demoUser';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const DEMO_USER_EMAIL = CURRENT_DEMO_USER_EMAIL ?? 'demo@fer.local';
+
+function getDemoUserHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'x-demo-user-email': DEMO_USER_EMAIL,
+  };
+}
 
 async function buildApiError(response: Response, fallback: string): Promise<Error> {
   try {
@@ -25,11 +34,9 @@ export async function createGroundedAiAnswer(
   threadId: string,
   data: CreateAiAnswerInput,
 ): Promise<GroundedAiAnswer> {
-  const response = await fetch(`${API_URL}/threads/${threadId}/ai-answer`, {
+  const response = await fetch(`${API_URL}/threads/${threadId}/ai/answers`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getDemoUserHeaders(),
     body: JSON.stringify(data),
   });
 

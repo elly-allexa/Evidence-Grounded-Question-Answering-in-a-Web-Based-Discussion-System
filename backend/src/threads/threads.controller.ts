@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
+import { ListThreadsDto } from './dto/list-threads.dto';
 import { ThreadsService } from './threads.service';
 
 @Controller('threads')
@@ -16,8 +17,8 @@ export class ThreadsController {
   }
 
   @Get()
-  findAll() {
-    return this.threadsService.findAll();
+  findAll(@Query() query: ListThreadsDto) {
+    return this.threadsService.findAll(query);
   }
 
   @Get(':id')

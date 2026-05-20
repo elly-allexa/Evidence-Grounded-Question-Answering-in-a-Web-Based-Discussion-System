@@ -89,7 +89,7 @@ export function GroundedAiPanel({
           rows={4}
           placeholder="Ask a question about the attached sources..."
           className="panel-textarea"
-          disabled={isGenerating}
+          disabled={isGenerating || !canAskAi}
           aria-describedby="ai-question-status"
         />
 

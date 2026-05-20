@@ -13,7 +13,7 @@ import { RetrievalService } from 'src/retrieval/retrieval.service';
 import { GroundedAiAnswer } from './types/grounded-answer.types';
 import { APP_LIMITS } from 'src/common/config/limits';
 
-const DEFAULT_AI_AUTHOR_EMAIL = 'demo@freemem.local';
+const DEFAULT_AI_AUTHOR_EMAIL = 'demo@fer.local';
 
 @Injectable()
 export class AiService {

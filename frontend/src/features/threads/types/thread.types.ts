@@ -8,9 +8,18 @@ export type Thread = {
   title: string;
   content: string;
   authorId: string;
-  author: ThreadAuthor;
   createdAt: string;
   updatedAt: string;
+  author?: {
+    id: string;
+    username: string;
+    email?: string;
+  };
+  _count?: {
+    comments?: number;
+    sources?: number;
+    aiAnswers?: number;
+  };
 };
 
 export type CreateThreadInput = {

@@ -1,4 +1,5 @@
 import type { GroundedAiAnswer } from '../types/ai.types';
+import { SafeMarkdown } from '../../markdown/components/SafeMarkdown';
 
 type AiAnswerListProps = {
   answers: GroundedAiAnswer[];
@@ -18,7 +19,9 @@ export function AiAnswerList({ answers }: AiAnswerListProps) {
 
       <div className="ai-answer-card__section">
         <p className="label-text">AI answer</p>
-        <p className="ai-answer-card__answer">{answer.answer}</p>
+        <div className="ai-answer-card__answer">
+          <SafeMarkdown content={answer.answer} />
+        </div>
       </div>
 
       <div className="ai-answer-card__meta">
@@ -38,7 +41,9 @@ export function AiAnswerList({ answers }: AiAnswerListProps) {
                 [{index + 1}] {citation.sourceTitle}
               </strong>
               <small>Chunk #{citation.chunkIndex}</small>
-              <p>{citation.quote}</p>
+              <div className="citation-card__quote">
+                <SafeMarkdown content={citation.quote} />
+              </div>
             </article>
           ))}
         </div>
