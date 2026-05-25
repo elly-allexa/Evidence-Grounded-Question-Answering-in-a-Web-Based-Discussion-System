@@ -1,8 +1,16 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateSourceDto } from './dto/create-source.dto';
 import { SourceChunkingService } from './chunking/source-chunking.service';
 import { APP_LIMITS } from 'src/common/config/limits';
+import { PdfTextExtractionService } from './pdf/pdf-text-extraction.service';
+import { UploadPdfSourceDto } from './dto/upload-pdf-source.dto';
+
+type UploadedPdfFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+};
 
 const sourceInclude = {
   thread: {
@@ -19,6 +27,7 @@ export class SourcesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sourceChunkingService: SourceChunkingService,
+    private readonly pdfTextExtractionService: PdfTextExtractionService,
   ) {}
 
   private async getCurrentAuthor(userId: string) {
@@ -133,6 +142,37 @@ export class SourcesService {
         },
       });
     });
+  }
+
+  async createFromPdf(
+    threadId: string,
+    file: UploadedPdfFile | undefined,
+    dto: UploadPdfSourceDto,
+    currentUserId: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('PDF file is required.');
+    }
+
+    const extractedText = await this.pdfTextExtractionService.extractText(file.buffer);
+
+    if (extractedText.length > APP_LIMITS.MAX_SOURCE_CONTENT_LENGTH) {
+      throw new UnprocessableEntityException(
+        `Extracted PDF text is too long. Maximum is ${APP_LIMITS.MAX_SOURCE_CONTENT_LENGTH} characters.`,
+      );
+    }
+
+    const title = dto.title?.trim() || file.originalname.replace(/\.pdf$/i, '');
+
+    return this.create(
+      threadId,
+      {
+        title,
+        type: 'pdf',
+        contentText: extractedText,
+      },
+      currentUserId,
+    );
   }
 
   async delete(sourceId: string, currentUserId: string) {

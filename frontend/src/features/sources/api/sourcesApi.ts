@@ -62,6 +62,37 @@ export async function createSource(
   return response.json();
 }
 
+export async function uploadPdfSource(
+  threadId: string,
+  file: File,
+  title?: string,
+): Promise<SourceDocument> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  if (title?.trim()) {
+    formData.append('title', title.trim());
+  }
+
+  const response = await fetch(`${API_URL}/threads/${threadId}/sources/pdf`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw await buildApiError(response, `Failed to upload PDF source: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function deleteSource(sourceId: string): Promise<void> {
   const headers = buildAuthHeaders(false);
 
@@ -96,7 +127,10 @@ export async function fetchChunksByThreadId(threadId: string): Promise<SourceChu
   const response = await fetch(`${API_URL}/threads/${threadId}/chunks`);
 
   if (!response.ok) {
-    throw await buildApiError(response, `Failed to fetch chunks for thread ${threadId}: ${response.status}`);
+    throw await buildApiError(
+      response,
+      `Failed to fetch chunks for thread ${threadId}: ${response.status}`,
+    );
   }
 
   return response.json();

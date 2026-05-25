@@ -1,4 +1,4 @@
-export type SourceType = 'text' | 'markdown';
+export type SourceType = 'text' | 'markdown' | 'pdf';
 
 export type SourceChunkCount = {
   chunks: number;

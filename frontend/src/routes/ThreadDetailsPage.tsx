@@ -11,6 +11,7 @@ import { MAX_SOURCES_PER_THREAD } from '../config/limits';
 import { fetchSourcesByThreadId } from '../features/sources/api/sourcesApi';
 import type { SourceDocument } from '../features/sources/types/source.types';
 import { SourceForm } from '../features/sources/components/SourceForm';
+import { PdfSourceForm } from '../features/sources/components/PdfSourceForm';
 import { SourceList } from '../features/sources/components/SourceList';
 import { RetrievalDebugPanel } from '../features/retrieval/components/RetrievalDebugPanel';
 import { GroundedAiPanel } from '../features/ai/components/GroundedAiPanel';
@@ -352,7 +353,12 @@ export function ThreadDetailsPage() {
                         evidence sources.
                       </p>
                     ) : (
-                      <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
+                      <>
+                        <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
+                        <div className="forum-card__subsection">
+                          <PdfSourceForm threadId={id} onSourceCreated={handleSourceCreated} />
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
