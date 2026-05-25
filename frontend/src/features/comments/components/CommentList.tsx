@@ -145,14 +145,16 @@ export function CommentList({
 
         {!comment.isDeleted && !isEditing && (
           <div className="comment-card__actions">
-            <button
-              type="button"
-              onClick={() =>
-                setReplyingToCommentId((prev) => (prev === comment.id ? null : comment.id))
-              }
-            >
-              {isReplying ? 'Close reply' : 'Reply'}
-            </button>
+            {currentUserId && (
+              <button
+                type="button"
+                onClick={() =>
+                  setReplyingToCommentId((prev) => (prev === comment.id ? null : comment.id))
+                }
+              >
+                {isReplying ? 'Close reply' : 'Reply'}
+              </button>
+            )}
 
             {isOwner && (
               <>
@@ -174,7 +176,7 @@ export function CommentList({
           </div>
         )}
 
-        {isReplying && (
+        {currentUserId && isReplying && (
           <CommentForm
             threadId={threadId}
             parentId={comment.id}

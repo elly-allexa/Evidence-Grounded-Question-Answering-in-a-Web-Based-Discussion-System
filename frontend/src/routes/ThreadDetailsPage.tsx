@@ -385,7 +385,12 @@ export function ThreadDetailsPage() {
                   <div className="forum-card__status">Missing thread id.</div>
                 )}
 
-                {id && <CommentForm threadId={id} onCommentCreated={handleCommentCreated} />}
+                {id &&
+                  (currentUser ? (
+                    <CommentForm threadId={id} onCommentCreated={handleCommentCreated} />
+                  ) : (
+                    <p className="forum-card__status">Sign in to start a discussion!</p>
+                  ))}
               </section>
             </div>
 
@@ -396,6 +401,7 @@ export function ThreadDetailsPage() {
                     threadId={id}
                     hasSources={sources.length > 0}
                     canAskAi={thread.authorId === currentUser?.id}
+                    isSignedIn={!!currentUser}
                     onAnswerCreated={handleAiAnswerCreated}
                   />
                 </section>

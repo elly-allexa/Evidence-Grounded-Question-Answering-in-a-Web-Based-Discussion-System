@@ -7,6 +7,7 @@ type GroundedAiPanelProps = {
   threadId: string;
   hasSources: boolean;
   canAskAi: boolean;
+  isSignedIn: boolean;
   onAnswerCreated: (answer: GroundedAiAnswer) => void;
 };
 
@@ -14,11 +15,23 @@ export function GroundedAiPanel({
   threadId,
   hasSources,
   canAskAi,
+  isSignedIn,
   onAnswerCreated,
 }: GroundedAiPanelProps) {
   const [question, setQuestion] = useState('');
   const [error, setError] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  function handleQuestionInputIntent() {
+    if (!isSignedIn) {
+      setError('Sign in and create your own thread to ask AI!');
+      return;
+    }
+
+    if (!canAskAi) {
+      setError('Only the thread author can ask AI questions for this thread.');
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,11 +98,14 @@ export function GroundedAiPanel({
         <textarea
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
+          onFocus={handleQuestionInputIntent}
+          onClick={handleQuestionInputIntent}
           maxLength={MAX_AI_QUESTION_LENGTH}
           rows={4}
           placeholder="Ask a question about the attached sources..."
           className="panel-textarea"
-          disabled={isGenerating || !canAskAi}
+          disabled={isGenerating}
+          readOnly={!canAskAi}
           aria-describedby="ai-question-status"
         />
 
@@ -100,7 +116,9 @@ export function GroundedAiPanel({
         <div className="action-row action-row--spread">
           <p className="forum-card__status forum-card__status--compact" id="ai-question-status">
             {!canAskAi
-              ? 'Only the thread author can ask AI questions.'
+              ? !isSignedIn
+                ? 'Sign in and create your own thread to ask AI!'
+                : 'Only the thread author can ask AI questions.'
               : hasSources
                 ? 'Ask a question grounded in the attached evidence.'
                 : 'Add sources before asking AI.'}
