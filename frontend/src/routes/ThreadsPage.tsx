@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { ThreadForm } from '../features/threads/components/ThreadForm';
 import { ThreadsList } from '../features/threads/components/ThreadList';
 import { fetchThreads } from '../features/threads/api/threadsApi';
@@ -7,6 +8,8 @@ import type { ThreadSort } from '../features/threads/api/threadsApi';
 import { THREAD_PAGE_SIZE } from '../config/limits';
 
 export function ThreadsPage() {
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -56,19 +59,56 @@ export function ThreadsPage() {
   }
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setSearch(searchInput.trim());
-    }, 350);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [searchInput]);
-
-  useEffect(() => {
     loadThreads({ mode: 'replace' });
   }, [search, sort]);
 
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') ?? '';
+    setSearchInput(urlSearch);
+    setSearch(urlSearch);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!location.hash) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const target = document.querySelector(location.hash);
+
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+    }, 50);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [location.hash]);
+
   async function handleThreadCreated() {
     await loadThreads({ mode: 'replace' });
+  }
+
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const normalizedSearch = searchInput.trim();
+
+    if (normalizedSearch) {
+      setSearchParams({ search: normalizedSearch });
+    } else {
+      setSearchParams({});
+    }
+
+    setSearch(normalizedSearch);
+  }
+
+  function handleClearSearch() {
+    setSearchInput('');
+    setSearch('');
+    setSearchParams({});
   }
 
   return (
@@ -83,7 +123,7 @@ export function ThreadsPage() {
 
         {error && <p className="error-banner">{error}</p>}
 
-        <section className="forum-card threads-page__compose">
+        <section id="create-thread" className="forum-card threads-page__compose">
           <div className="card-heading">
             <div>
               <h2>Create thread</h2>
@@ -96,17 +136,17 @@ export function ThreadsPage() {
           <ThreadForm onThreadCreated={handleThreadCreated} />
         </section>
 
-        <section className="forum-card threads-page__list">
+        <section id="thread-list" className="forum-card threads-page__list">
           <div className="card-heading">
             <div>
               <h2>Thread list</h2>
               <p className="card-heading__text">
-                Browse ongoing discussions and open the ones you want to review.
+                Search, sort, and open the discussions you want to review.
               </p>
             </div>
           </div>
 
-          <div className="thread-toolbar">
+          <form className="thread-toolbar" onSubmit={handleSearchSubmit}>
             <input
               type="search"
               value={searchInput}
@@ -124,12 +164,20 @@ export function ThreadsPage() {
               <option value="newest">Newest</option>
               <option value="popular">Popular</option>
             </select>
-          </div>
+
+            <button type="submit">Search</button>
+
+            {search && (
+              <button type="button" className="button--ghost" onClick={handleClearSearch}>
+                Clear
+              </button>
+            )}
+          </form>
 
           {isLoading ? (
             <p className="forum-card__status">Loading threads...</p>
           ) : (
-            <ThreadsList threads={threads} />
+            <ThreadsList threads={threads} variant="grid" />
           )}
 
           {!isLoading && hasMore && (

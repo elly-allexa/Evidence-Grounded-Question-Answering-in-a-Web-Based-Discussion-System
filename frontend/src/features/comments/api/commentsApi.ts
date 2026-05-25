@@ -1,15 +1,7 @@
 import type { Comment, CreateCommentInput, UpdateCommentInput } from '../types/comment.types';
-import { CURRENT_DEMO_USER_EMAIL } from '../../../config/demoUser';
+import { buildAuthHeaders } from '../../auth/api/authApi';
 
 const API_URL = import.meta.env.VITE_API_URL;
-const DEMO_USER_EMAIL = CURRENT_DEMO_USER_EMAIL ?? 'demo@fer.local';
-
-function getDemoUserHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'x-demo-user-email': DEMO_USER_EMAIL,
-  };
-}
 
 async function buildApiError(response: Response, fallback: string): Promise<Error> {
   try {
@@ -44,9 +36,15 @@ export async function fetchCommentsByThreadId(threadId: string): Promise<Comment
 }
 
 export async function createComment(threadId: string, data: CreateCommentInput): Promise<Comment> {
+  const headers = buildAuthHeaders();
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
   const response = await fetch(`${API_URL}/threads/${threadId}/comments`, {
     method: 'POST',
-    headers: getDemoUserHeaders(),
+    headers,
     body: JSON.stringify(data),
   });
 
@@ -61,9 +59,15 @@ export async function createComment(threadId: string, data: CreateCommentInput):
 }
 
 export async function updateComment(commentId: string, data: UpdateCommentInput): Promise<Comment> {
+  const headers = buildAuthHeaders();
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
   const response = await fetch(`${API_URL}/comments/${commentId}`, {
     method: 'PATCH',
-    headers: getDemoUserHeaders(),
+    headers,
     body: JSON.stringify(data),
   });
 
@@ -78,11 +82,15 @@ export async function updateComment(commentId: string, data: UpdateCommentInput)
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
   const response = await fetch(`${API_URL}/comments/${commentId}`, {
     method: 'DELETE',
-    headers: {
-      'x-demo-user-email': DEMO_USER_EMAIL,
-    },
+    headers,
   });
 
   if (!response.ok) {

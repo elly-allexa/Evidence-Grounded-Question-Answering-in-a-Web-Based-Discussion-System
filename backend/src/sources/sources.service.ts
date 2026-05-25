@@ -4,8 +4,6 @@ import { CreateSourceDto } from './dto/create-source.dto';
 import { SourceChunkingService } from './chunking/source-chunking.service';
 import { APP_LIMITS } from 'src/common/config/limits';
 
-const DEFAULT_SOURCE_AUTHOR_EMAIL = 'demo@fer.local';
-
 const sourceInclude = {
   thread: {
     select: {
@@ -23,11 +21,9 @@ export class SourcesService {
     private readonly sourceChunkingService: SourceChunkingService,
   ) {}
 
-  private async getDemoAuthor(demoUserEmail?: string) {
-    const authorEmail = demoUserEmail ?? process.env.DEMO_USER_EMAIL ?? DEFAULT_SOURCE_AUTHOR_EMAIL;
-
+  private async getCurrentAuthor(userId: string) {
     const author = await this.prisma.user.findUnique({
-      where: { email: authorEmail },
+      where: { id: userId },
       select: {
         id: true,
         username: true,
@@ -35,9 +31,7 @@ export class SourcesService {
     });
 
     if (!author) {
-      throw new NotFoundException(
-        `Demo user not found for email ${authorEmail}. Seed the database or set DEMO_USER_EMAIL.`,
-      );
+      throw new NotFoundException('Current user not found');
     }
 
     return author;
@@ -67,8 +61,8 @@ export class SourcesService {
     });
   }
 
-  async create(threadId: string, createSourceDto: CreateSourceDto, demoUserEmail?: string) {
-    const author = await this.getDemoAuthor(demoUserEmail);
+  async create(threadId: string, createSourceDto: CreateSourceDto, currentUserId: string) {
+    const author = await this.getCurrentAuthor(currentUserId);
 
     const thread = await this.prisma.thread.findUnique({
       where: { id: threadId },
@@ -141,8 +135,8 @@ export class SourcesService {
     });
   }
 
-  async delete(sourceId: string, demoUserEmail?: string) {
-    const author = await this.getDemoAuthor(demoUserEmail);
+  async delete(sourceId: string, currentUserId: string) {
+    const author = await this.getCurrentAuthor(currentUserId);
 
     const source = await this.prisma.sourceDocument.findUnique({
       where: { id: sourceId },

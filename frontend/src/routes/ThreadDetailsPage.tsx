@@ -7,7 +7,6 @@ import { fetchCommentsByThreadId } from '../features/comments/api/commentsApi';
 import type { Comment } from '../features/comments/types/comment.types';
 import { CommentForm } from '../features/comments/components/CommentForm';
 import { CommentList } from '../features/comments/components/CommentList';
-import { CURRENT_DEMO_USER_ID } from '../config/demoUser';
 import { MAX_SOURCES_PER_THREAD } from '../config/limits';
 import { fetchSourcesByThreadId } from '../features/sources/api/sourcesApi';
 import type { SourceDocument } from '../features/sources/types/source.types';
@@ -17,9 +16,9 @@ import { RetrievalDebugPanel } from '../features/retrieval/components/RetrievalD
 import { GroundedAiPanel } from '../features/ai/components/GroundedAiPanel';
 import { fetchAiAnswersByThreadId } from '../features/ai/api/aiApi';
 import type { GroundedAiAnswer } from '../features/ai/types/ai.types';
-import { AiAnswerList } from '../features/ai/components/AiAnswerList';
+import { AiAnswerHistoryModal } from '../features/ai/components/AiAnswerHistoryModal';
+import { fetchMe, type UserProfile } from '../features/auth/api/authApi';
 
-const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
 const SHOW_RETRIEVAL_DEBUG_PANEL = false;
 
 export function ThreadDetailsPage() {
@@ -30,6 +29,7 @@ export function ThreadDetailsPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [sources, setSources] = useState<SourceDocument[]>([]);
   const [aiAnswers, setAiAnswers] = useState<GroundedAiAnswer[]>([]);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   const [error, setError] = useState('');
   const [commentsError, setCommentsError] = useState('');
@@ -43,7 +43,7 @@ export function ThreadDetailsPage() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isAiAnswersExpanded, setIsAiAnswersExpanded] = useState(true);
+  const [isAiAnswersModalOpen, setIsAiAnswersModalOpen] = useState(false);
 
   async function loadThread() {
     if (!id) {
@@ -151,6 +151,30 @@ export function ThreadDetailsPage() {
     loadAiAnswers();
   }, [id]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCurrentUser() {
+      try {
+        const profile = await fetchMe();
+
+        if (!cancelled) {
+          setCurrentUser(profile);
+        }
+      } catch {
+        if (!cancelled) {
+          setCurrentUser(null);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function handleSave(data: { title: string; content: string }) {
     if (!id) {
       throw new Error('Missing thread id');
@@ -203,8 +227,17 @@ export function ThreadDetailsPage() {
   }
 
   async function handleCommentsChanged() {
+    const previousScrollY = window.scrollY;
+
     await loadComments();
     await loadThread();
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: previousScrollY,
+        behavior: 'auto',
+      });
+    });
   }
 
   function handleSourceCreated(newSource: SourceDocument) {
@@ -219,13 +252,14 @@ export function ThreadDetailsPage() {
 
   function handleAiAnswerCreated(answer: GroundedAiAnswer) {
     setAiAnswers((prev) => [answer, ...prev]);
+    void loadThread();
   }
 
   return (
     <main className="forum-page">
       <div className="forum-page__inner">
         <div className="forum-page__backlink">
-          <Link to="/threads">← Back to threads</Link>
+          <Link to="/threads#thread-list">← Back to threads</Link>
         </div>
 
         <header className="forum-page__header">
@@ -261,7 +295,7 @@ export function ThreadDetailsPage() {
                     </p>
                   </div>
 
-                  {thread.authorId === CURRENT_USER_ID && (
+                  {thread.authorId === currentUser?.id && (
                     <div className="thread-hero__actions">
                       <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
                         {isEditing ? 'Close edit' : 'Edit thread'}
@@ -276,7 +310,7 @@ export function ThreadDetailsPage() {
 
                 <p className="thread-hero__content">{thread.content}</p>
 
-                {isEditing && thread.authorId === CURRENT_USER_ID && (
+                {isEditing && thread.authorId === currentUser?.id && (
                   <div className="thread-hero__editor">
                     <ThreadEditForm
                       initialTitle={thread.title}
@@ -305,16 +339,17 @@ export function ThreadDetailsPage() {
                 ) : (
                   <SourceList
                     sources={sources}
-                    canManageSources={thread.authorId === CURRENT_USER_ID}
+                    canManageSources={thread.authorId === currentUser?.id}
                     onSourceDeleted={handleSourceDeleted}
                   />
                 )}
 
-                {id && thread.authorId === CURRENT_USER_ID && (
+                {id && thread.authorId === currentUser?.id && (
                   <div className="forum-card__subsection">
                     {sources.length >= MAX_SOURCES_PER_THREAD ? (
                       <p className="forum-card__status">
-                        Source limit reached. A thread can have at most {MAX_SOURCES_PER_THREAD} evidence sources.
+                        Source limit reached. A thread can have at most {MAX_SOURCES_PER_THREAD}{' '}
+                        evidence sources.
                       </p>
                     ) : (
                       <SourceForm threadId={id} onSourceCreated={handleSourceCreated} />
@@ -341,6 +376,7 @@ export function ThreadDetailsPage() {
                   <CommentList
                     threadId={id}
                     comments={comments}
+                    currentUserId={currentUser?.id ?? null}
                     onCommentCreated={handleCommentCreated}
                     onCommentUpdated={handleCommentUpdated}
                     onCommentsChanged={handleCommentsChanged}
@@ -358,46 +394,40 @@ export function ThreadDetailsPage() {
                 <section>
                   <GroundedAiPanel
                     threadId={id}
-                        hasSources={sources.length > 0}
-                        canAskAi={thread.authorId === CURRENT_USER_ID}
+                    hasSources={sources.length > 0}
+                    canAskAi={thread.authorId === currentUser?.id}
                     onAnswerCreated={handleAiAnswerCreated}
                   />
                 </section>
               )}
 
-              <section className="forum-card forum-card--sticky">
+              <section className="forum-card ai-answer-summary-card">
                 <div className="card-heading card-heading--split">
                   <div>
                     <h2>Previous AI answers</h2>
                     <p className="card-heading__text">
-                      Saved responses include the original question, model answer, and citations.
+                      {aiAnswers.length === 0
+                        ? 'No saved AI answers yet.'
+                        : `${aiAnswers.length} saved AI answer${aiAnswers.length === 1 ? '' : 's'} in this thread.`}
                     </p>
                   </div>
 
                   <button
                     type="button"
                     className="button--ghost"
-                    onClick={() => setIsAiAnswersExpanded((prev) => !prev)}
+                    onClick={() => setIsAiAnswersModalOpen(true)}
+                    disabled={isAiAnswersLoading}
                   >
-                    {isAiAnswersExpanded ? 'Close' : 'Show answers'}
+                    Open history
                   </button>
                 </div>
 
                 {aiAnswersError && <p className="error-banner">{aiAnswersError}</p>}
 
-                {isAiAnswersLoading ? (
-                  <div className="forum-card__status">Loading AI answers...</div>
-                ) : (
-                  isAiAnswersExpanded && (
-                    <div className="scroll-panel">
-                      <AiAnswerList answers={aiAnswers} />
-                    </div>
-                  )
-                )}
-
-                {!isAiAnswersExpanded && !isAiAnswersLoading && (
+                {!isAiAnswersLoading && aiAnswers.length > 0 && (
                   <p className="forum-card__status forum-card__status--compact">
-                    Answer history is collapsed.
+                    Latest question: {aiAnswers[0].question.slice(0, 120)}
+                    {aiAnswers[0].question.length > 120 ? '...' : ''}
                   </p>
                 )}
               </section>
@@ -407,6 +437,15 @@ export function ThreadDetailsPage() {
               )}
             </aside>
           </div>
+        )}
+
+        {isAiAnswersModalOpen && (
+          <AiAnswerHistoryModal
+            answers={aiAnswers}
+            isLoading={isAiAnswersLoading}
+            error={aiAnswersError}
+            onClose={() => setIsAiAnswersModalOpen(false)}
+          />
         )}
       </div>
     </main>

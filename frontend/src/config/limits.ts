@@ -12,4 +12,5 @@ export const DEFAULT_AI_RETRIEVAL_LIMIT = 5;
 export const MAX_AI_RETRIEVAL_LIMIT = 10;
 
 export const THREAD_PAGE_SIZE = 20;
-export const HOME_FEED_THREAD_LIMIT = 6;
+export const HOME_FEED_THREAD_LIMIT = 20;
+export const HOME_FEED_MAX_THREADS = 100;

@@ -52,10 +52,6 @@ export function HomePage() {
 
           <div className="action-row" style={{ marginTop: '1.25rem' }}>
             <Link className="app-nav__link" to="/threads">
-              Browse threads
-            </Link>
-
-            <Link className="app-nav__link" to="/threads">
               Start a discussion
             </Link>
           </div>
@@ -70,10 +66,6 @@ export function HomePage() {
                 continue the conversation.
               </p>
             </div>
-
-            <Link className="app-nav__link" to="/threads">
-              View all
-            </Link>
           </div>
 
           {error && <p className="error-banner">{error}</p>}
@@ -81,7 +73,7 @@ export function HomePage() {
           {isLoading ? (
             <p className="forum-card__status">Loading active threads...</p>
           ) : (
-            <ThreadsList threads={threads} />
+            <ThreadsList threads={threads} variant="feed" />
           )}
         </section>
       </div>

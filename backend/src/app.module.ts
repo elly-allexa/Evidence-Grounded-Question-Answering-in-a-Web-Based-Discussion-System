@@ -7,6 +7,7 @@ import { CommentsModule } from './comments/comments.module';
 import { SourcesModule } from './sources/sources.module';
 import { RetrievalModule } from './retrieval/retrieval.module';
 import { AiModule } from './ai/ai.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -17,9 +18,10 @@ import { AiModule } from './ai/ai.module';
     HealthModule,
     ThreadsModule,
     CommentsModule,
-    SourcesModule, 
+    SourcesModule,
     RetrievalModule,
     AiModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

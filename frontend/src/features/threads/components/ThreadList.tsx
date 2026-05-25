@@ -3,9 +3,10 @@ import type { Thread } from '../types/thread.types';
 
 type ThreadsListProps = {
   threads: Thread[];
+  variant?: 'grid' | 'feed';
 };
 
-function truncateContent(content: string, maxLength: number = 140): string {
+function truncateContent(content: string, maxLength: number = 160): string {
   if (content.length <= maxLength) {
     return content;
   }
@@ -13,13 +14,13 @@ function truncateContent(content: string, maxLength: number = 140): string {
   return `${content.substring(0, maxLength)}...`;
 }
 
-export function ThreadsList({ threads }: ThreadsListProps) {
+export function ThreadsList({ threads, variant = 'grid' }: ThreadsListProps) {
   if (threads.length === 0) {
     return <p className="forum-card__status forum-card__status--compact">No threads found.</p>;
   }
 
   return (
-    <div className="thread-list">
+    <div className={`thread-list thread-list--${variant}`}>
       <ul className="thread-list__items">
         {threads.map((thread) => (
           <li key={thread.id} className="thread-card">
@@ -30,7 +31,7 @@ export function ThreadsList({ threads }: ThreadsListProps) {
             <p className="thread-card__preview">{truncateContent(thread.content)}</p>
 
             <div className="thread-card__meta">
-              {'author' in thread && thread.author ? (
+              {thread.author ? (
                 <span>By @{thread.author.username}</span>
               ) : (
                 <span>By unknown</span>

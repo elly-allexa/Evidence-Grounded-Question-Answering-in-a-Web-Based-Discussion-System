@@ -1,8 +1,7 @@
 import type { CreateThreadInput, Thread, UpdateThreadInput } from '../types/thread.types';
-import { CURRENT_DEMO_USER_EMAIL } from '../../../config/demoUser';
+import { buildAuthHeaders } from '../../auth/api/authApi';
 
 const API_URL = import.meta.env.VITE_API_URL;
-const DEMO_USER_EMAIL = CURRENT_DEMO_USER_EMAIL ?? 'demo@fer.local';
 
 export type ThreadSort = 'newest' | 'popular' | 'active';
 
@@ -12,13 +11,6 @@ export type FetchThreadsParams = {
   limit?: number;
   skip?: number;
 };
-
-function getDemoUserHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'x-demo-user-email': DEMO_USER_EMAIL,
-  };
-}
 
 async function buildApiError(response: Response, fallback: string): Promise<Error> {
   try {
@@ -86,9 +78,15 @@ export async function fetchThreadById(id: string): Promise<Thread> {
 }
 
 export async function createThread(data: CreateThreadInput): Promise<Thread> {
+  const headers = buildAuthHeaders();
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
   const response = await fetch(`${API_URL}/threads`, {
     method: 'POST',
-    headers: getDemoUserHeaders(),
+    headers,
     body: JSON.stringify(data),
   });
 
@@ -100,9 +98,15 @@ export async function createThread(data: CreateThreadInput): Promise<Thread> {
 }
 
 export async function updateThread(id: string, data: UpdateThreadInput): Promise<Thread> {
+  const headers = buildAuthHeaders();
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
   const response = await fetch(`${API_URL}/threads/${id}`, {
     method: 'PATCH',
-    headers: getDemoUserHeaders(),
+    headers,
     body: JSON.stringify(data),
   });
 
@@ -114,11 +118,15 @@ export async function updateThread(id: string, data: UpdateThreadInput): Promise
 }
 
 export async function deleteThread(id: string): Promise<void> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
   const response = await fetch(`${API_URL}/threads/${id}`, {
     method: 'DELETE',
-    headers: {
-      'x-demo-user-email': DEMO_USER_EMAIL,
-    },
+    headers,
   });
 
   if (!response.ok) {

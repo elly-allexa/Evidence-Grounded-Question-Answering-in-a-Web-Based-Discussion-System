@@ -1,7 +1,10 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { TestAiDto } from './dto/test-ai.dto';
 import { CreateAiAnswerDto } from './dto/create-ai-answer.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import type { JwtUser } from 'src/auth/types';
 
 @Controller()
 export class AiController {
@@ -18,16 +21,17 @@ export class AiController {
   }
 
   @Post('threads/:threadId/ai/answers')
+  @UseGuards(JwtAuthGuard)
   generateGroundedAnswer(
     @Param('threadId') threadId: string,
     @Body() createAiAnswerDto: CreateAiAnswerDto,
-    @Headers('x-demo-user-email') demoUserEmail?: string,
+    @CurrentUser() user: JwtUser,
   ) {
     return this.aiService.generateGroundedAnswer(
       threadId,
       createAiAnswerDto.question,
       createAiAnswerDto.limit,
-      demoUserEmail,
+      user.id,
     );
   }
 }

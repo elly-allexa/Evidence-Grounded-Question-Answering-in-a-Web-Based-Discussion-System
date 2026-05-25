@@ -1,19 +1,20 @@
-import { Body, Controller, Delete, Get, Headers, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
 import { ListThreadsDto } from './dto/list-threads.dto';
 import { ThreadsService } from './threads.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import type { JwtUser } from 'src/auth/types';
 
 @Controller('threads')
 export class ThreadsController {
   constructor(private readonly threadsService: ThreadsService) {}
 
   @Post()
-  create(
-    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
-    @Body() createThreadDto: CreateThreadDto,
-  ) {
-    return this.threadsService.create(createThreadDto, demoUserEmail);
+  @UseGuards(JwtAuthGuard)
+  create(@CurrentUser() user: JwtUser, @Body() createThreadDto: CreateThreadDto) {
+    return this.threadsService.create(createThreadDto, user.id);
   }
 
   @Get()
@@ -27,16 +28,18 @@ export class ThreadsController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   update(
     @Param('id') id: string,
-    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
+    @CurrentUser() user: JwtUser,
     @Body() updateThreadDto: UpdateThreadDto,
   ) {
-    return this.threadsService.update(id, updateThreadDto, demoUserEmail);
+    return this.threadsService.update(id, updateThreadDto, user.id);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Headers('x-demo-user-email') demoUserEmail: string | undefined) {
-    return this.threadsService.remove(id, demoUserEmail);
+  @UseGuards(JwtAuthGuard)
+  remove(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return this.threadsService.remove(id, user.id);
   }
 }

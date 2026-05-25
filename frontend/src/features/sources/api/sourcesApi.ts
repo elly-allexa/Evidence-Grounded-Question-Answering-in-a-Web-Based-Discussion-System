@@ -1,16 +1,8 @@
-import { CURRENT_DEMO_USER_EMAIL } from '../../../config/demoUser';
 import type { CreateSourceInput, SourceDocument } from '../types/source.types';
 import type { SourceChunk } from '../types/sourceChunk.types';
+import { buildAuthHeaders } from '../../auth/api/authApi';
 
 const API_URL = import.meta.env.VITE_API_URL;
-const DEMO_USER_EMAIL = CURRENT_DEMO_USER_EMAIL ?? 'demo@fer.local';
-
-function getDemoUserHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'x-demo-user-email': DEMO_USER_EMAIL,
-  };
-}
 
 async function buildApiError(response: Response, fallback: string): Promise<Error> {
   try {
@@ -48,9 +40,15 @@ export async function createSource(
   threadId: string,
   data: CreateSourceInput,
 ): Promise<SourceDocument> {
+  const headers = buildAuthHeaders();
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
   const response = await fetch(`${API_URL}/threads/${threadId}/sources`, {
     method: 'POST',
-    headers: getDemoUserHeaders(),
+    headers,
     body: JSON.stringify(data),
   });
 
@@ -65,11 +63,15 @@ export async function createSource(
 }
 
 export async function deleteSource(sourceId: string): Promise<void> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
   const response = await fetch(`${API_URL}/sources/${sourceId}`, {
     method: 'DELETE',
-    headers: {
-      'x-demo-user-email': DEMO_USER_EMAIL,
-    },
+    headers,
   });
 
   if (!response.ok) {

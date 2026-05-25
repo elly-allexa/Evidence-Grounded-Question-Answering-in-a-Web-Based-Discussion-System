@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { deleteSource } from '../api/sourcesApi';
 import type { SourceDocument } from '../types/source.types';
 import { SafeMarkdown } from '../../markdown/components/SafeMarkdown';
@@ -9,7 +9,7 @@ type SourceListProps = {
   onSourceDeleted: (sourceId: string) => void;
 };
 
-const PREVIEW_LENGTH = 280;
+const PREVIEW_LENGTH = 420;
 
 function truncateText(text: string, maxLength = PREVIEW_LENGTH): string {
   if (text.length <= maxLength) {
@@ -19,23 +19,23 @@ function truncateText(text: string, maxLength = PREVIEW_LENGTH): string {
   return `${text.slice(0, maxLength)}...`;
 }
 
-function getDeleteErrorMessage(error: unknown): string {
-  const fallback = 'Failed to delete source. Please try again.';
-
-  if (!(error instanceof Error)) {
-    return fallback;
-  }
-
-  if (error.message.includes('Sources cannot be deleted after an AI answer has been generated.')) {
-    return 'This source cannot be deleted because the thread already has an AI answer. Remove the answer history first if you need to change the evidence set.';
-  }
-
-  return error.message || fallback;
-}
-
 export function SourceList({ sources, canManageSources, onSourceDeleted }: SourceListProps) {
-  const [expandedSourceIds, setExpandedSourceIds] = useState<Record<string, boolean>>({});
-  const [error, setError] = useState('');
+  const [expandedSourceIds, setExpandedSourceIds] = useState<Set<string>>(new Set());
+  const [sourceErrors, setSourceErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const errorIds = Object.keys(sourceErrors);
+
+    if (errorIds.length === 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSourceErrors({});
+    }, 30000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [sourceErrors]);
 
   async function handleDelete(sourceId: string) {
     const confirmed = window.confirm('Are you sure you want to delete this source?');
@@ -45,19 +45,41 @@ export function SourceList({ sources, canManageSources, onSourceDeleted }: Sourc
     }
 
     try {
-      setError('');
+      setSourceErrors((prev) => {
+        const next = { ...prev };
+        delete next[sourceId];
+        return next;
+      });
+
       await deleteSource(sourceId);
       onSourceDeleted(sourceId);
     } catch (deleteError) {
-      setError(getDeleteErrorMessage(deleteError));
+      const message =
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'Could not delete this source. Please try again.';
+
+      setSourceErrors((prev) => ({
+        ...prev,
+        [sourceId]: message.includes('AI answer')
+          ? 'Evidence is locked after an AI answer has been generated. This protects saved citations and answer reproducibility.'
+          : message,
+      }));
     }
   }
 
   function togglePreview(sourceId: string) {
-    setExpandedSourceIds((prev) => ({
-      ...prev,
-      [sourceId]: !prev[sourceId],
-    }));
+    setExpandedSourceIds((prev) => {
+      const next = new Set(prev);
+
+      if (next.has(sourceId)) {
+        next.delete(sourceId);
+      } else {
+        next.add(sourceId);
+      }
+
+      return next;
+    });
   }
 
   if (sources.length === 0) {
@@ -68,12 +90,11 @@ export function SourceList({ sources, canManageSources, onSourceDeleted }: Sourc
 
   return (
     <div className="source-list">
-      {error && <p className="error-banner">{error}</p>}
-
       <div className="source-list__items">
         {sources.map((source) => {
-          const isExpanded = expandedSourceIds[source.id] ?? false;
+          const isExpanded = expandedSourceIds.has(source.id);
           const hasOverflow = source.contentText.length > PREVIEW_LENGTH;
+          const sourceError = sourceErrors[source.id];
 
           return (
             <article key={source.id} className="source-card">
@@ -101,8 +122,12 @@ export function SourceList({ sources, canManageSources, onSourceDeleted }: Sourc
               <div
                 className={`source-card__preview ${isExpanded ? 'source-card__preview--expanded' : ''}`}
               >
-                <SafeMarkdown content={isExpanded ? source.contentText : truncateText(source.contentText)} />
+                <SafeMarkdown
+                  content={isExpanded ? source.contentText : truncateText(source.contentText)}
+                />
               </div>
+
+              {sourceError && <p className="error-banner">{sourceError}</p>}
 
               {canManageSources && (
                 <div className="source-card__actions">

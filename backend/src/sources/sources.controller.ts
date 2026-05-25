@@ -1,6 +1,9 @@
-import { Body, Controller, Delete, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CreateSourceDto } from './dto/create-source.dto';
 import { SourcesService } from './sources.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import type { JwtUser } from 'src/auth/types';
 
 @Controller()
 export class SourcesController {
@@ -12,20 +15,19 @@ export class SourcesController {
   }
 
   @Post('threads/:threadId/sources')
+  @UseGuards(JwtAuthGuard)
   create(
     @Param('threadId') threadId: string,
-    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
+    @CurrentUser() user: JwtUser,
     @Body() createSourceDto: CreateSourceDto,
   ) {
-    return this.sourcesService.create(threadId, createSourceDto, demoUserEmail);
+    return this.sourcesService.create(threadId, createSourceDto, user.id);
   }
 
   @Delete('sources/:sourceId')
-  delete(
-    @Param('sourceId') sourceId: string,
-    @Headers('x-demo-user-email') demoUserEmail: string | undefined,
-  ) {
-    return this.sourcesService.delete(sourceId, demoUserEmail);
+  @UseGuards(JwtAuthGuard)
+  delete(@Param('sourceId') sourceId: string, @CurrentUser() user: JwtUser) {
+    return this.sourcesService.delete(sourceId, user.id);
   }
 
   @Get('sources/:sourceId/chunks')

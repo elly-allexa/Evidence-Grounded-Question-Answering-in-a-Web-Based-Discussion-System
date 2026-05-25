@@ -12,8 +12,6 @@ import { UpdateThreadDto } from './dto/update-thread.dto';
 import { APP_LIMITS } from 'src/common/config/limits';
 import { ListThreadsDto } from './dto/list-threads.dto';
 
-const DEFAULT_THREAD_AUTHOR_EMAIL = 'demo@fer.local';
-
 const threadInclude = {
   author: {
     select: {
@@ -35,26 +33,21 @@ const threadInclude = {
 export class ThreadsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async getAuthorByEmail(demoUserEmail?: string) {
-    const authorEmail =
-      demoUserEmail ?? process.env.THREAD_AUTHOR_EMAIL ?? DEFAULT_THREAD_AUTHOR_EMAIL;
-
+  private async getCurrentAuthor(userId: string) {
     const author = await this.prisma.user.findUnique({
-      where: { email: authorEmail },
+      where: { id: userId },
       select: { id: true },
     });
 
     if (!author) {
-      throw new ServiceUnavailableException(
-        `Thread author user not found for email ${authorEmail}. Seed the database or set THREAD_AUTHOR_EMAIL.`,
-      );
+      throw new ServiceUnavailableException('Current user not found');
     }
 
     return author;
   }
 
-  async create(createThreadDto: CreateThreadDto, demoUserEmail?: string) {
-    const author = await this.getAuthorByEmail(demoUserEmail);
+  async create(createThreadDto: CreateThreadDto, currentUserId: string) {
+    const author = await this.getCurrentAuthor(currentUserId);
 
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -161,8 +154,8 @@ export class ThreadsService {
     return thread;
   }
 
-  async update(id: string, updateThreadDto: UpdateThreadDto, demoUserEmail?: string) {
-    const author = await this.getAuthorByEmail(demoUserEmail);
+  async update(id: string, updateThreadDto: UpdateThreadDto, currentUserId: string) {
+    const author = await this.getCurrentAuthor(currentUserId);
 
     const thread = await this.prisma.thread.findUnique({
       where: { id },
@@ -190,8 +183,8 @@ export class ThreadsService {
     });
   }
 
-  async remove(id: string, demoUserEmail?: string) {
-    const author = await this.getAuthorByEmail(demoUserEmail);
+  async remove(id: string, currentUserId: string) {
+    const author = await this.getCurrentAuthor(currentUserId);
 
     const thread = await this.prisma.thread.findUnique({
       where: { id },

@@ -3,15 +3,14 @@ import { deleteComment, updateComment } from '../api/commentsApi';
 import type { Comment } from '../types/comment.types';
 import { CommentEditForm } from './CommentEditForm';
 import { CommentForm } from './CommentForm';
-import { CURRENT_DEMO_USER_ID } from '../../../config/demoUser';
 import { getDisplayUsername } from '../../../utils/displayUser';
 
-const CURRENT_USER_ID = CURRENT_DEMO_USER_ID;
 const MAX_VISUAL_DEPTH = 4;
 
 type CommentListProps = {
   threadId: string;
   comments: Comment[];
+  currentUserId: string | null;
   onCommentCreated: (newComment: Comment) => void;
   onCommentUpdated: (updatedComment: Comment) => void;
   onCommentsChanged: () => Promise<void> | void;
@@ -20,6 +19,7 @@ type CommentListProps = {
 export function CommentList({
   threadId,
   comments,
+  currentUserId,
   onCommentCreated,
   onCommentUpdated,
   onCommentsChanged,
@@ -102,7 +102,7 @@ export function CommentList({
   }
 
   function renderComment(comment: Comment, depth = 0) {
-    const isOwner = comment.authorId === CURRENT_USER_ID;
+    const isOwner = comment.authorId === currentUserId;
     const isEditing = editingCommentId === comment.id;
     const isReplying = replyingToCommentId === comment.id;
     const childReplies = commentsByParent.get(comment.id) ?? [];

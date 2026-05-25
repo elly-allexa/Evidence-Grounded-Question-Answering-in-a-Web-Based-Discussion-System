@@ -13,8 +13,6 @@ import { RetrievalService } from 'src/retrieval/retrieval.service';
 import { GroundedAiAnswer } from './types/grounded-answer.types';
 import { APP_LIMITS } from 'src/common/config/limits';
 
-const DEFAULT_AI_AUTHOR_EMAIL = 'demo@fer.local';
-
 @Injectable()
 export class AiService {
   constructor(
@@ -23,11 +21,9 @@ export class AiService {
     private readonly retrievalService: RetrievalService,
   ) {}
 
-  private async getDemoAuthor(demoUserEmail?: string) {
-    const authorEmail = demoUserEmail ?? process.env.DEMO_USER_EMAIL ?? DEFAULT_AI_AUTHOR_EMAIL;
-
+  private async getCurrentAuthor(userId: string) {
     const author = await this.prisma.user.findUnique({
-      where: { email: authorEmail },
+      where: { id: userId },
       select: {
         id: true,
         username: true,
@@ -36,9 +32,7 @@ export class AiService {
     });
 
     if (!author) {
-      throw new NotFoundException(
-        `Demo user not found for email ${authorEmail}. Seed the database or set DEMO_USER_EMAIL.`,
-      );
+      throw new NotFoundException('Current user not found');
     }
 
     return author;
@@ -65,7 +59,7 @@ export class AiService {
     threadId: string,
     question: string,
     limit: number = APP_LIMITS.DEFAULT_AI_RETRIEVAL_LIMIT,
-    demoUserEmail?: string,
+    currentUserId: string,
   ): Promise<GroundedAiAnswer> {
     const thread = await this.prisma.thread.findUnique({
       where: { id: threadId },
@@ -81,7 +75,7 @@ export class AiService {
       throw new NotFoundException(`Thread with id ${threadId} not found`);
     }
 
-    const author = await this.getDemoAuthor(demoUserEmail);
+    const author = await this.getCurrentAuthor(currentUserId);
 
     if (thread.authorId !== author.id) {
       throw new ForbiddenException('Only the thread author can ask AI questions for this thread.');
