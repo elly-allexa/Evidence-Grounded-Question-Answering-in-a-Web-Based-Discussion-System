@@ -1,4 +1,9 @@
-import type { Comment, CreateCommentInput, UpdateCommentInput } from '../types/comment.types';
+import type {
+  Comment,
+  CreateCommentInput,
+  UpdateCommentInput,
+  DeleteCommentResult,
+} from '../types/comment.types';
 import { buildAuthHeaders } from '../../auth/api/authApi';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -81,7 +86,7 @@ export async function updateComment(commentId: string, data: UpdateCommentInput)
   return response.json();
 }
 
-export async function deleteComment(commentId: string): Promise<void> {
+export async function deleteComment(commentId: string): Promise<DeleteCommentResult> {
   const headers = buildAuthHeaders(false);
 
   if (!headers) {
@@ -99,4 +104,6 @@ export async function deleteComment(commentId: string): Promise<void> {
       `Failed to delete comment ${commentId}: ${response.status}`,
     );
   }
+
+  return response.json();
 }

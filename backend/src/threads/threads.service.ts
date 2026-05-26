@@ -6,6 +6,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
@@ -79,7 +80,7 @@ export class ThreadsService {
   }
 
   async findAll(query: ListThreadsDto = {}) {
-    const search = query.search?.trim();
+    const search = query.search?.trim().replace(/\s+/g, ' ');
     const sort = query.sort ?? 'active';
 
     const take = Math.min(
@@ -88,25 +89,6 @@ export class ThreadsService {
     );
 
     const skip = Math.max(query.skip ?? 0, 0);
-
-    const where = search
-      ? {
-          OR: [
-            {
-              title: {
-                contains: search,
-                mode: 'insensitive' as const,
-              },
-            },
-            {
-              content: {
-                contains: search,
-                mode: 'insensitive' as const,
-              },
-            },
-          ],
-        }
-      : {};
 
     const orderBy =
       sort === 'popular'
@@ -132,8 +114,45 @@ export class ThreadsService {
               },
             ];
 
+    if (search) {
+      const rows = await this.prisma.$queryRaw<{ id: string }[]>(
+        Prisma.sql`
+          SELECT id
+          FROM "Thread"
+          WHERE
+            "title" ILIKE ${`%${search}%`}
+            OR "content" ILIKE ${`%${search}%`}
+            OR similarity("title", ${search}) > 0.2
+            OR similarity("content", ${search}) > 0.08
+          ORDER BY
+            GREATEST(
+              similarity("title", ${search}),
+              similarity("content", ${search})
+            ) DESC,
+            "updatedAt" DESC
+          LIMIT ${take}
+          OFFSET ${skip}
+        `,
+      );
+
+      const ids = rows.map((row) => row.id);
+
+      if (ids.length === 0) {
+        return [];
+      }
+
+      const threads = await this.prisma.thread.findMany({
+        where: { id: { in: ids } },
+        include: threadInclude,
+      });
+
+      return ids
+        .map((threadId) => threads.find((thread) => thread.id === threadId))
+        .filter((thread): thread is NonNullable<typeof thread> => Boolean(thread));
+    }
+
     return this.prisma.thread.findMany({
-      where,
+      where: {},
       orderBy,
       take,
       skip,

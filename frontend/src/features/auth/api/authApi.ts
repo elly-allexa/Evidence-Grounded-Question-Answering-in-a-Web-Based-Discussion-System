@@ -96,3 +96,26 @@ export async function updateMe(data: UpdateProfileInput): Promise<UserProfile> {
 
   return response.json();
 }
+
+export async function uploadAvatar(file: File): Promise<UserProfile> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_URL}/auth/me/avatar`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw await buildApiError(response, `Failed to upload avatar: ${response.status}`);
+  }
+
+  return response.json();
+}

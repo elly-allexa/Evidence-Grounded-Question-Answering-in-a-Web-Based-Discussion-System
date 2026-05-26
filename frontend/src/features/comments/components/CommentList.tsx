@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { deleteComment, updateComment } from '../api/commentsApi';
-import type { Comment } from '../types/comment.types';
+import type { Comment, DeleteCommentResult } from '../types/comment.types';
 import { CommentEditForm } from './CommentEditForm';
 import { CommentForm } from './CommentForm';
 import { getDisplayUsername } from '../../../utils/displayUser';
@@ -13,7 +13,7 @@ type CommentListProps = {
   currentUserId: string | null;
   onCommentCreated: (newComment: Comment) => void;
   onCommentUpdated: (updatedComment: Comment) => void;
-  onCommentsChanged: () => Promise<void> | void;
+  onCommentDeleted: (result: DeleteCommentResult) => void;
 };
 
 export function CommentList({
@@ -22,7 +22,7 @@ export function CommentList({
   currentUserId,
   onCommentCreated,
   onCommentUpdated,
-  onCommentsChanged,
+  onCommentDeleted,
 }: CommentListProps) {
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export function CommentList({
     try {
       setActionError('');
 
-      await deleteComment(commentId);
+      const result = await deleteComment(commentId);
 
       if (editingCommentId === commentId) {
         setEditingCommentId(null);
@@ -91,7 +91,7 @@ export function CommentList({
         setReplyingToCommentId(null);
       }
 
-      await onCommentsChanged();
+      onCommentDeleted(result);
     } catch (err) {
       if (err instanceof Error) {
         setActionError(err.message);

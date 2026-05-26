@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { fetchMe, updateMe } from '../features/auth/api/authApi';
+import { fetchMe, updateMe, uploadAvatar } from '../features/auth/api/authApi';
 import type { UserProfile } from '../features/auth/api/authApi';
 
 export function ProfilePage() {
@@ -10,6 +10,7 @@ export function ProfilePage() {
   const [status, setStatus] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   async function loadProfile() {
     try {
@@ -51,6 +52,29 @@ export function ProfilePage() {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      setError('');
+      setStatus('');
+      setIsUploadingAvatar(true);
+
+      const updated = await uploadAvatar(file);
+
+      setProfile(updated);
+      setStatus('Avatar updated successfully.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsUploadingAvatar(false);
     }
   }
 
@@ -104,7 +128,14 @@ export function ProfilePage() {
           <div className="profile-card__header">
             <div className="profile-card__avatar">
               {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt={`${profile.username} avatar`} />
+                <img
+                  src={
+                    profile.avatarUrl.startsWith('http')
+                      ? profile.avatarUrl
+                      : `${import.meta.env.VITE_API_URL}${profile.avatarUrl}`
+                  }
+                  alt={`${profile.username} avatar`}
+                />
               ) : (
                 <span>{profile.username.slice(0, 1).toUpperCase()}</span>
               )}
@@ -113,6 +144,20 @@ export function ProfilePage() {
             <div>
               <h2>@{profile.username}</h2>
               <p className="forum-card__status">{profile.email}</p>
+
+              <label
+                className="app-nav__link"
+                style={{ display: 'inline-block', marginTop: '0.75rem' }}
+              >
+                {isUploadingAvatar ? 'Uploading...' : 'Change avatar'}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleAvatarChange}
+                  disabled={isUploadingAvatar}
+                  style={{ display: 'none' }}
+                />
+              </label>
             </div>
           </div>
 

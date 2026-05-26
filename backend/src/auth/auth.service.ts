@@ -99,6 +99,25 @@ export class AuthService {
     });
   }
 
+  async updateAvatar(userId: string, filename: string) {
+    const avatarUrl = `/uploads/avatars/${filename}`;
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarUrl,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        avatarUrl: true,
+        bio: true,
+        createdAt: true,
+      },
+    });
+  }
+
   private createUsernameFromEmail(email: string): string {
     const localPart = email.split('@')[0] ?? 'user';
 

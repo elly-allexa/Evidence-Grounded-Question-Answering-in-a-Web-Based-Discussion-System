@@ -23,3 +23,13 @@ export type CreateCommentInput = {
 export type UpdateCommentInput = {
   content?: string;
 };
+
+export type DeleteCommentResult =
+  | {
+      mode: 'hard';
+      deletedCommentIds: string[];
+    }
+  | {
+      mode: 'soft';
+      comment: Comment;
+    };

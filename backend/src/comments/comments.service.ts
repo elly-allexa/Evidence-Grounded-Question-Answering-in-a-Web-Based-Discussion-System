@@ -47,7 +47,8 @@ export class CommentsService {
   private async cleanupDeletedParentChain(
     tx: Prisma.TransactionClient,
     parentId: string | null,
-  ) {
+  ): Promise<string[]> {
+    const deletedIds: string[] = [];
     let currentParentId = parentId;
 
     while (currentParentId) {
@@ -78,8 +79,12 @@ export class CommentsService {
         where: { id: parent.id },
       });
 
+      deletedIds.push(parent.id);
+
       currentParentId = parent.parentId;
     }
+
+    return deletedIds;
   }
 
   async findByThreadId(threadId: string) {
@@ -270,7 +275,7 @@ export class CommentsService {
         where: { id: commentId },
       });
 
-      await this.cleanupDeletedParentChain(tx, parentId);
+      const cleanedParentIds = await this.cleanupDeletedParentChain(tx, parentId);
 
       await tx.thread.update({
         where: { id: comment.threadId },
@@ -281,7 +286,7 @@ export class CommentsService {
 
       return {
         mode: 'hard',
-        deletedCommentId: commentId,
+        deletedCommentIds: [commentId, ...cleanedParentIds],
       };
     });
   }

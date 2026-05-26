@@ -4,7 +4,7 @@ import { fetchThreadById, updateThread, deleteThread } from '../features/threads
 import type { Thread } from '../features/threads/types/thread.types';
 import { ThreadEditForm } from '../features/threads/components/ThreadEditForm';
 import { fetchCommentsByThreadId } from '../features/comments/api/commentsApi';
-import type { Comment } from '../features/comments/types/comment.types';
+import type { Comment, DeleteCommentResult } from '../features/comments/types/comment.types';
 import { CommentForm } from '../features/comments/components/CommentForm';
 import { CommentList } from '../features/comments/components/CommentList';
 import { MAX_SOURCES_PER_THREAD } from '../config/limits';
@@ -217,28 +217,25 @@ export function ThreadDetailsPage() {
 
   function handleCommentCreated(newComment: Comment) {
     setComments((prev) => [...prev, newComment]);
-    void loadThread();
   }
 
   function handleCommentUpdated(updatedComment: Comment) {
     setComments((prev) =>
       prev.map((comment) => (comment.id === updatedComment.id ? updatedComment : comment)),
     );
-    void loadThread();
   }
 
-  async function handleCommentsChanged() {
-    const previousScrollY = window.scrollY;
+  function handleCommentDeleted(result: DeleteCommentResult) {
+    if (result.mode === 'hard') {
+      setComments((prev) =>
+        prev.filter((comment) => !result.deletedCommentIds.includes(comment.id)),
+      );
+      return;
+    }
 
-    await loadComments();
-    await loadThread();
-
-    window.requestAnimationFrame(() => {
-      window.scrollTo({
-        top: previousScrollY,
-        behavior: 'auto',
-      });
-    });
+    setComments((prev) =>
+      prev.map((comment) => (comment.id === result.comment.id ? result.comment : comment)),
+    );
   }
 
   function handleSourceCreated(newSource: SourceDocument) {
@@ -385,7 +382,7 @@ export function ThreadDetailsPage() {
                     currentUserId={currentUser?.id ?? null}
                     onCommentCreated={handleCommentCreated}
                     onCommentUpdated={handleCommentUpdated}
-                    onCommentsChanged={handleCommentsChanged}
+                    onCommentDeleted={handleCommentDeleted}
                   />
                 ) : (
                   <div className="forum-card__status">Missing thread id.</div>
