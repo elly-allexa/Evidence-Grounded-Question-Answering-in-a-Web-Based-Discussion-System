@@ -12,6 +12,8 @@ import { GroqProvider } from './providers/groq.provider';
 import { RetrievalService } from 'src/retrieval/retrieval.service';
 import { GroundedAiAnswer } from './types/grounded-answer.types';
 import { APP_LIMITS } from 'src/common/config/limits';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 
 @Injectable()
 export class AiService {
@@ -19,6 +21,7 @@ export class AiService {
     private readonly prisma: PrismaService,
     private readonly groqProvider: GroqProvider,
     private readonly retrievalService: RetrievalService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private async getCurrentAuthor(userId: string) {
@@ -205,6 +208,15 @@ export class AiService {
         include: {
           citations: true,
         },
+      });
+
+      // Create notification for AI answer ready (per spec)
+      await this.notificationsService.create({
+        userId: author.id,
+        type: NotificationType.AI_ANSWER_READY,
+        title: 'AI answer ready',
+        message: `AI answered your question in "${thread.title}".`,
+        link: `/threads/${threadId}`,
       });
 
       return savedAnswer;

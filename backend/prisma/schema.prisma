@@ -19,6 +19,12 @@ enum Role {
   ADMIN
 }
 
+enum NotificationType {
+  THREAD_COMMENT
+  COMMENT_REPLY
+  AI_ANSWER_READY
+}
+
 model User {
   id           String    @id @default(uuid())
   email        String    @unique
@@ -33,6 +39,7 @@ model User {
 
   threads  Thread[]
   comments Comment[]
+  notifications Notification[]
 }
 
 model Thread {
@@ -128,4 +135,21 @@ model AiCitation {
   createdAt DateTime @default(now())
 
   @@index([aiAnswerId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
 }

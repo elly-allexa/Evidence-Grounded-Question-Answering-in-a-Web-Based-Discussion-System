@@ -5,6 +5,8 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/database/prisma.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -21,7 +23,10 @@ const commentInclude = {
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   private async getCurrentAuthor(userId: string) {
     const author = await this.prisma.user.findUnique({
@@ -104,8 +109,10 @@ export class CommentsService {
 
     const author = await this.getCurrentAuthor(currentUserId);
 
+    let parentComment: any = null;
+
     if (createCommentDto.parentId) {
-      const parentComment = await this.prisma.comment.findUnique({
+      parentComment = await this.prisma.comment.findUnique({
         where: { id: createCommentDto.parentId },
       });
 
@@ -120,7 +127,7 @@ export class CommentsService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const createdComment = await this.prisma.$transaction(async (tx) => {
       const comment = await tx.comment.create({
         data: {
           threadId,
@@ -140,6 +147,35 @@ export class CommentsService {
 
       return comment;
     });
+
+    // Notifications: notify thread author (unless they are the commenter)
+    if (thread.authorId !== author.id) {
+      await this.notificationsService.create({
+        userId: thread.authorId,
+        type: NotificationType.THREAD_COMMENT,
+        title: 'New comment on your thread',
+        message: `@${author.username} commented on "${thread.title}".`,
+        link: `/threads/${threadId}`,
+      });
+    }
+
+    // If this is a reply, notify the parent comment author (unless it's the same as the commenter or the thread author)
+    if (
+      createCommentDto.parentId &&
+      parentComment &&
+      parentComment.authorId !== author.id &&
+      parentComment.authorId !== thread.authorId
+    ) {
+      await this.notificationsService.create({
+        userId: parentComment.authorId,
+        type: NotificationType.COMMENT_REPLY,
+        title: 'New reply to your comment',
+        message: `@${author.username} replied to your comment.`,
+        link: `/threads/${threadId}`,
+      });
+    }
+
+    return createdComment;
   }
 
   async update(commentId: string, updateCommentDto: UpdateCommentDto, currentUserId: string) {

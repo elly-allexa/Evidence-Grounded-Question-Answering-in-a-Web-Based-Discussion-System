@@ -4,6 +4,8 @@ import { ThreadsPage } from './routes/ThreadsPage';
 import { ThreadDetailsPage } from './routes/ThreadDetailsPage';
 import { ProfilePage } from './routes/ProfilePage';
 import { AuthCallbackPage } from './routes/AuthCallbackPage';
+import { NotificationBell } from './features/notifications/components/NotificationBell';
+import { getAuthToken } from './features/auth/api/authApi';
 import { BrowserRouter, Route, Routes, Link, useNavigate } from 'react-router-dom';
 
 function AppLayout() {
@@ -53,6 +55,8 @@ function AppLayout() {
           <Link className="app-nav__link" to="/threads">
             Threads
           </Link>
+
+          {getAuthToken() && <NotificationBell />}
 
           <Link className="app-nav__link" to="/profile">
             Profile
