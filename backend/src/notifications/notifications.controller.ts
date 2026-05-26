@@ -11,7 +11,7 @@ export class NotificationsController {
 
   @Get()
   findMine(@CurrentUser() user: JwtUser) {
-    return this.notificationsService.findMine(user.id);
+    return this.notificationsService.findMyNotifications(user.id);
   }
 
   @Get('unread-count')
@@ -21,7 +21,7 @@ export class NotificationsController {
 
   @Patch(':id/read')
   markAsRead(@Param('id') id: string, @CurrentUser() user: JwtUser) {
-    return this.notificationsService.markAsRead(id, user.id);
+    return this.notificationsService.markRead(id, user.id);
   }
 
   @Patch('read-all')

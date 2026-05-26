@@ -153,18 +153,16 @@ export class CommentsService {
       return comment;
     });
 
-    // Notifications: notify thread author (unless they are the commenter)
     if (thread.authorId !== author.id) {
       await this.notificationsService.create({
         userId: thread.authorId,
         type: NotificationType.THREAD_COMMENT,
         title: 'New comment on your thread',
-        message: `@${author.username} commented on "${thread.title}".`,
+        message: `${author.username} commented on your thread.`,
         link: `/threads/${threadId}`,
       });
     }
 
-    // If this is a reply, notify the parent comment author (unless it's the same as the commenter or the thread author)
     if (
       createCommentDto.parentId &&
       parentComment &&
@@ -175,7 +173,7 @@ export class CommentsService {
         userId: parentComment.authorId,
         type: NotificationType.COMMENT_REPLY,
         title: 'New reply to your comment',
-        message: `@${author.username} replied to your comment.`,
+        message: `${author.username} replied to your comment.`,
         link: `/threads/${threadId}`,
       });
     }

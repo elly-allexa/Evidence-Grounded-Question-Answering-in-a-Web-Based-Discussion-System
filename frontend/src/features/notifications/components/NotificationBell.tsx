@@ -2,25 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   fetchNotifications,
-  fetchUnreadNotificationCount,
-  markAllNotificationsAsRead,
-  markNotificationAsRead,
+  markNotificationRead,
   type AppNotification,
 } from '../api/notificationsApi';
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
   async function loadNotifications() {
-    const [items, count] = await Promise.all([
-      fetchNotifications(),
-      fetchUnreadNotificationCount(),
-    ]);
-
-    setNotifications(items);
-    setUnreadCount(count);
+    const data = await fetchNotifications();
+    setNotifications(data);
   }
 
   useEffect(() => {
@@ -33,57 +25,60 @@ export function NotificationBell() {
     return () => window.clearInterval(intervalId);
   }, []);
 
+  const unreadCount = notifications.filter((item) => !item.isRead).length;
+
   async function handleOpen() {
     setIsOpen((prev) => !prev);
     await loadNotifications();
   }
 
-  async function handleNotificationClick(notification: AppNotification) {
-    if (!notification.isRead) {
-      await markNotificationAsRead(notification.id);
-      await loadNotifications();
-    }
-  }
+  async function handleRead(id: string) {
+    const updated = await markNotificationRead(id);
 
-  async function handleMarkAllRead() {
-    await markAllNotificationsAsRead();
-    await loadNotifications();
+    setNotifications((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   }
 
   return (
     <div className="notification-bell">
-      <button type="button" className="app-nav__link notification-bell__button" onClick={handleOpen}>
-        🔔
-        {unreadCount > 0 && <span className="notification-bell__badge">{unreadCount}</span>}
+      <button type="button" className="app-nav__link" onClick={handleOpen}>
+        Notifications {unreadCount > 0 ? `(${unreadCount})` : ''}
       </button>
 
       {isOpen && (
-        <div className="notification-dropdown">
-          <div className="notification-dropdown__header">
-            <strong>Notifications</strong>
-
-            <button type="button" className="button--ghost" onClick={handleMarkAllRead}>
-              Mark all read
-            </button>
-          </div>
+        <div className="notification-popover">
+          <h3>Notifications</h3>
 
           {notifications.length === 0 ? (
             <p className="forum-card__status">No notifications yet.</p>
           ) : (
-            <div className="notification-dropdown__list">
+            <div className="notification-list">
               {notifications.map((notification) => (
-                <Link
+                <article
                   key={notification.id}
-                  to={notification.link ?? '/'}
-                  className={`notification-item ${
-                    notification.isRead ? 'notification-item--read' : ''
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
+                  className={`notification-item ${notification.isRead ? '' : 'notification-item--unread'}`}
                 >
                   <strong>{notification.title}</strong>
-                  <span>{notification.message}</span>
+                  <p>{notification.message}</p>
                   <small>{new Date(notification.createdAt).toLocaleString()}</small>
-                </Link>
+
+                  <div className="action-row">
+                    {notification.link && (
+                      <Link
+                        className="app-nav__link"
+                        to={notification.link}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Open
+                      </Link>
+                    )}
+
+                    {!notification.isRead && (
+                      <button type="button" onClick={() => handleRead(notification.id)}>
+                        Mark read
+                      </button>
+                    )}
+                  </div>
+                </article>
               ))}
             </div>
           )}

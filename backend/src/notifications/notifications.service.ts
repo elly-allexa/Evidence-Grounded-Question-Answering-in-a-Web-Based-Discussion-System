@@ -18,7 +18,7 @@ export class NotificationsService {
     });
   }
 
-  async findMine(userId: string) {
+  async findMyNotifications(userId: string) {
     return this.prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -37,7 +37,7 @@ export class NotificationsService {
     return { count };
   }
 
-  async markAsRead(notificationId: string, userId: string) {
+  async markRead(notificationId: string, userId: string) {
     const notification = await this.prisma.notification.findUnique({
       where: { id: notificationId },
     });

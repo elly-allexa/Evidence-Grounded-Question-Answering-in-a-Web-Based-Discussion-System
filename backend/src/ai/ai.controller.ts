@@ -27,11 +27,17 @@ export class AiController {
     @Body() createAiAnswerDto: CreateAiAnswerDto,
     @CurrentUser() user: JwtUser,
   ) {
-    return this.aiService.generateGroundedAnswer(
+    return this.aiService.enqueueGroundedAnswer(
       threadId,
       createAiAnswerDto.question,
       createAiAnswerDto.limit,
       user.id,
     );
+  }
+
+  @Get('ai/jobs')
+  @UseGuards(JwtAuthGuard)
+  findMyAiJobs(@CurrentUser() user: JwtUser) {
+    return this.aiService.findMyAiJobs(user.id);
   }
 }

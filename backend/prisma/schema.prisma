@@ -25,21 +25,29 @@ enum NotificationType {
   AI_ANSWER_READY
 }
 
+enum AiJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  username     String    @unique
-  avatarUrl    String?
-  bio          String?
-  passwordHash String?
-  role         Role      @default(USER)
-  isDeleted    Boolean   @default(false)
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  avatarUrl     String?
+  bio           String?
+  passwordHash  String?
+  role          Role      @default(USER)
+  aiJobs        AiJob[]
+  notifications Notification[]
+  isDeleted     Boolean   @default(false)
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
 
   threads  Thread[]
   comments Comment[]
-  notifications Notification[]
 }
 
 model Thread {
@@ -52,6 +60,7 @@ model Thread {
   updatedAt DateTime @updatedAt
 
   aiAnswers AiAnswer[]
+  aiJobs    AiJob[]
   sources   SourceDocument[]
   comments  Comment[]
 }
@@ -137,19 +146,38 @@ model AiCitation {
   @@index([aiAnswerId])
 }
 
-model Notification {
-  id        String           @id @default(uuid())
+model AiJob {
+  id        String      @id @default(uuid())
+  threadId  String
   userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question  String
+  limit     Int
+  status    AiJobStatus @default(QUEUED)
+  answerId  String?
+  error     String?
 
-  type      NotificationType
-  title     String
-  message   String
-  link      String?
-  isRead    Boolean          @default(false)
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime         @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
-  @@index([isRead])
+  @@index([threadId])
+}
+
+model Notification {
+  id       String           @id @default(uuid())
+  userId   String
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type     NotificationType
+  title    String
+  message  String
+  link     String?
+  isRead   Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
