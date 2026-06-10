@@ -48,3 +48,22 @@ export async function markNotificationRead(id: string): Promise<AppNotification>
 
   return response.json();
 }
+
+export async function markAllNotificationsRead(): Promise<{ success: boolean }> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
+  const response = await fetch(`${API_URL}/notifications/read-all`, {
+    method: 'PATCH',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to mark all notifications as read');
+  }
+
+  return response.json();
+}

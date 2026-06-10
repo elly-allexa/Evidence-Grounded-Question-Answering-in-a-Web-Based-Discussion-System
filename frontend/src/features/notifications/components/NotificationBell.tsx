@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   fetchNotifications,
+  markAllNotificationsRead,
   markNotificationRead,
   type AppNotification,
 } from '../api/notificationsApi';
@@ -38,15 +39,26 @@ export function NotificationBell() {
     setNotifications((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   }
 
+  async function handleReadAll() {
+    await markAllNotificationsRead();
+    setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+  }
+
   return (
     <div className="notification-bell">
       <button type="button" className="app-nav__link" onClick={handleOpen}>
-        Notifications {unreadCount > 0 ? `(${unreadCount})` : ''}
+        🔔 {unreadCount > 0 ? `(${unreadCount})` : ''}
       </button>
 
       {isOpen && (
         <div className="notification-popover">
           <h3>Notifications</h3>
+
+          {unreadCount > 0 && (
+            <button type="button" className="button--ghost" onClick={handleReadAll}>
+              Mark all read
+            </button>
+          )}
 
           {notifications.length === 0 ? (
             <p className="forum-card__status">No notifications yet.</p>

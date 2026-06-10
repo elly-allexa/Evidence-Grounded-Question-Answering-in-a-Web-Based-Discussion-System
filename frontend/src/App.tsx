@@ -1,15 +1,43 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HomePage } from './routes/HomePage';
 import { ThreadsPage } from './routes/ThreadsPage';
 import { ThreadDetailsPage } from './routes/ThreadDetailsPage';
 import { ProfilePage } from './routes/ProfilePage';
 import { AuthCallbackPage } from './routes/AuthCallbackPage';
 import { NotificationBell } from './features/notifications/components/NotificationBell';
-import { BrowserRouter, Route, Routes, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Link, useLocation, useNavigate } from 'react-router-dom';
+import { fetchMe, type UserProfile } from './features/auth/api/authApi';
+import { AdminPage } from './routes/AdminPage';
 
 function AppLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [navSearch, setNavSearch] = useState('');
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCurrentUser() {
+      try {
+        const profile = await fetchMe();
+
+        if (!cancelled) {
+          setCurrentUser(profile);
+        }
+      } catch {
+        if (!cancelled) {
+          setCurrentUser(null);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, location.search]);
 
   function handleNavSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,11 +83,21 @@ function AppLayout() {
             Threads
           </Link>
 
+          <Link className="app-nav__link" to="/threads?mine=true">
+            My Threads
+          </Link>
+
           <NotificationBell />
 
           <Link className="app-nav__link" to="/profile">
             Profile
           </Link>
+
+          {currentUser?.role === 'ADMIN' && (
+            <Link className="app-nav__link" to="/admin">
+              Admin
+            </Link>
+          )}
 
           <a className="app-nav__link" href={`${import.meta.env.VITE_API_URL}/auth/google`}>
             Sign in
@@ -73,6 +111,7 @@ function AppLayout() {
           <Route path="/threads" element={<ThreadsPage />} />
           <Route path="/threads/:id" element={<ThreadDetailsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
         </Routes>
       </div>

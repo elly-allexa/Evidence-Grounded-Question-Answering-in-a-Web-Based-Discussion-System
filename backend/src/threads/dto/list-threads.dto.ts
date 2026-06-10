@@ -1,5 +1,14 @@
-import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { APP_LIMITS } from 'src/common/config/limits';
 
 export const THREAD_SORT_VALUES = ['newest', 'popular', 'active'] as const;
@@ -28,4 +37,9 @@ export class ListThreadsDto {
   @IsInt()
   @Min(0)
   skip?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  mine?: boolean;
 }

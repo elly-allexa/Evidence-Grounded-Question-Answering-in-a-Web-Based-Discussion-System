@@ -9,12 +9,13 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { AiJobStatus } from '@prisma/client';
+import { AiJobStatus, NotificationType } from '@prisma/client';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { GroqProvider } from './providers/groq.provider';
 import { RetrievalService } from 'src/retrieval/retrieval.service';
 import { GroundedAiAnswer } from './types/grounded-answer.types';
 import { APP_LIMITS } from 'src/common/config/limits';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class AiService {
@@ -22,6 +23,7 @@ export class AiService {
     private readonly prisma: PrismaService,
     private readonly groqProvider: GroqProvider,
     private readonly retrievalService: RetrievalService,
+    private readonly notificationsService: NotificationsService,
     @InjectQueue('ai') private readonly aiQueue: Queue,
   ) {}
 
@@ -78,6 +80,35 @@ export class AiService {
       throw new ForbiddenException('Only the thread author can ask AI questions for this thread.');
     }
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const todayAiAnswerCount = await this.prisma.aiAnswer.count({
+      where: {
+        createdAt: {
+          gte: startOfToday,
+        },
+        thread: {
+          authorId: currentUserId,
+        },
+      },
+    });
+
+    if (todayAiAnswerCount >= APP_LIMITS.MAX_AI_QUESTIONS_PER_USER_PER_DAY) {
+      await this.notificationsService.create({
+        userId: currentUserId,
+        type: NotificationType.AI_ANSWER_READY,
+        title: 'Daily AI limit reached',
+        message: `You used all ${APP_LIMITS.MAX_AI_QUESTIONS_PER_USER_PER_DAY} AI questions available today.`,
+        link: `/threads/${threadId}`,
+      });
+
+      throw new HttpException(
+        `Daily AI question limit reached. You can ask at most ${APP_LIMITS.MAX_AI_QUESTIONS_PER_USER_PER_DAY} AI questions per day.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const activeJob = await this.prisma.aiJob.findFirst({
       where: {
         userId: currentUserId,
@@ -103,6 +134,14 @@ export class AiService {
       },
     });
 
+    await this.notificationsService.create({
+      userId: currentUserId,
+      type: NotificationType.AI_ANSWER_READY,
+      title: 'AI request queued',
+      message: 'Your AI question was added to the queue.',
+      link: `/threads/${threadId}`,
+    });
+
     await this.aiQueue.add(
       'generate-grounded-answer',
       {
@@ -120,6 +159,30 @@ export class AiService {
     );
 
     return job;
+  }
+
+  async findMyAiLimits(userId: string) {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const used = await this.prisma.aiAnswer.count({
+      where: {
+        createdAt: {
+          gte: startOfToday,
+        },
+        thread: {
+          authorId: userId,
+        },
+      },
+    });
+
+    const limit = APP_LIMITS.MAX_AI_QUESTIONS_PER_USER_PER_DAY;
+
+    return {
+      used,
+      limit,
+      remaining: Math.max(limit - used, 0),
+    };
   }
 
   async generateGroundedAnswerNow(

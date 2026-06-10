@@ -40,4 +40,10 @@ export class AiController {
   findMyAiJobs(@CurrentUser() user: JwtUser) {
     return this.aiService.findMyAiJobs(user.id);
   }
+
+  @Get('ai/limits')
+  @UseGuards(JwtAuthGuard)
+  findMyAiLimits(@CurrentUser() user: JwtUser) {
+    return this.aiService.findMyAiLimits(user.id);
+  }
 }

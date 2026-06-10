@@ -11,6 +11,7 @@ type CommentListProps = {
   threadId: string;
   comments: Comment[];
   currentUserId: string | null;
+  currentUserRole?: 'USER' | 'ADMIN' | null;
   onCommentCreated: (newComment: Comment) => void;
   onCommentUpdated: (updatedComment: Comment) => void;
   onCommentDeleted: (result: DeleteCommentResult) => void;
@@ -20,6 +21,7 @@ export function CommentList({
   threadId,
   comments,
   currentUserId,
+  currentUserRole,
   onCommentCreated,
   onCommentUpdated,
   onCommentDeleted,
@@ -103,6 +105,7 @@ export function CommentList({
 
   function renderComment(comment: Comment, depth = 0) {
     const isOwner = comment.authorId === currentUserId;
+    const isAdmin = currentUserRole === 'ADMIN';
     const isEditing = editingCommentId === comment.id;
     const isReplying = replyingToCommentId === comment.id;
     const childReplies = commentsByParent.get(comment.id) ?? [];
@@ -156,20 +159,22 @@ export function CommentList({
               </button>
             )}
 
-            {isOwner && (
+            {(isOwner || isAdmin) && (
               <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActionError('');
-                    setEditingCommentId(comment.id);
-                  }}
-                >
-                  Edit
-                </button>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionError('');
+                      setEditingCommentId(comment.id);
+                    }}
+                  >
+                    Edit
+                  </button>
+                )}
 
                 <button type="button" onClick={() => handleDelete(comment.id)}>
-                  Delete
+                  {isAdmin && !isOwner ? 'Delete as admin' : 'Delete'}
                 </button>
               </>
             )}

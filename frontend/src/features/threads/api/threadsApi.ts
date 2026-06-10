@@ -10,6 +10,7 @@ export type FetchThreadsParams = {
   sort?: ThreadSort;
   limit?: number;
   skip?: number;
+  mine?: boolean;
 };
 
 async function buildApiError(response: Response, fallback: string): Promise<Error> {
@@ -50,6 +51,10 @@ function buildThreadQueryString(params: FetchThreadsParams): string {
     searchParams.set('skip', String(params.skip));
   }
 
+  if (params.mine) {
+    searchParams.set('mine', 'true');
+  }
+
   const queryString = searchParams.toString();
 
   return queryString ? `?${queryString}` : '';
@@ -57,8 +62,11 @@ function buildThreadQueryString(params: FetchThreadsParams): string {
 
 export async function fetchThreads(params: FetchThreadsParams = {}): Promise<Thread[]> {
   const queryString = buildThreadQueryString(params);
+  const headers = params.mine ? buildAuthHeaders(false) : undefined;
 
-  const response = await fetch(`${API_URL}/threads${queryString}`);
+  const response = await fetch(`${API_URL}/threads${queryString}`, {
+    headers: headers ?? undefined,
+  });
 
   if (!response.ok) {
     throw await buildApiError(response, `Failed to fetch threads: ${response.status}`);

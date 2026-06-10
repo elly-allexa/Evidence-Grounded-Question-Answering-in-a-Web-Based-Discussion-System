@@ -1,7 +1,14 @@
 import type { CreateAiAnswerInput, GroundedAiAnswer } from '../types/ai.types';
+import type { AiJob } from '../types/aiJob.types';
 import { buildAuthHeaders } from '../../auth/api/authApi';
 
 const API_URL = import.meta.env.VITE_API_URL;
+
+export type AiLimits = {
+  used: number;
+  limit: number;
+  remaining: number;
+};
 
 async function buildApiError(response: Response, fallback: string): Promise<Error> {
   try {
@@ -22,14 +29,14 @@ async function buildApiError(response: Response, fallback: string): Promise<Erro
   return new Error(fallback);
 }
 
-export async function createGroundedAiAnswer(
+export async function enqueueGroundedAiAnswer(
   threadId: string,
   data: CreateAiAnswerInput,
-): Promise<GroundedAiAnswer> {
+): Promise<AiJob> {
   const headers = buildAuthHeaders();
 
   if (!headers) {
-    throw new Error('Not signed in');
+    throw new Error('Sign in to ask AI.');
   }
 
   const response = await fetch(`${API_URL}/threads/${threadId}/ai/answers`, {
@@ -56,6 +63,42 @@ export async function fetchAiAnswersByThreadId(threadId: string): Promise<Ground
       response,
       `Failed to fetch AI answers for thread ${threadId}: ${response.status}`,
     );
+  }
+
+  return response.json();
+}
+
+export async function fetchMyAiJobs(): Promise<AiJob[]> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    return [];
+  }
+
+  const response = await fetch(`${API_URL}/ai/jobs`, {
+    headers,
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  return response.json();
+}
+
+export async function fetchMyAiLimits(): Promise<AiLimits | null> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    return null;
+  }
+
+  const response = await fetch(`${API_URL}/ai/limits`, {
+    headers,
+  });
+
+  if (!response.ok) {
+    return null;
   }
 
   return response.json();

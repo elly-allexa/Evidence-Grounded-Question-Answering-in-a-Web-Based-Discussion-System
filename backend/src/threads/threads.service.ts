@@ -6,7 +6,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
@@ -37,7 +37,10 @@ export class ThreadsService {
   private async getCurrentAuthor(userId: string) {
     const author = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true },
+      select: {
+        id: true,
+        role: true,
+      },
     });
 
     if (!author) {
@@ -79,9 +82,13 @@ export class ThreadsService {
     });
   }
 
-  async findAll(query: ListThreadsDto = {}) {
+  async findAll(query: ListThreadsDto = {}, currentUserId?: string) {
     const search = query.search?.trim().replace(/\s+/g, ' ');
     const sort = query.sort ?? 'active';
+
+    if (query.mine && !currentUserId) {
+      throw new ForbiddenException('Sign in to view your own threads.');
+    }
 
     const take = Math.min(
       Math.max(query.limit ?? APP_LIMITS.DEFAULT_THREAD_PAGE_SIZE, 1),
@@ -114,16 +121,32 @@ export class ThreadsService {
               },
             ];
 
+    const where: Prisma.ThreadWhereInput = {
+      ...(query.mine && currentUserId
+        ? {
+            authorId: currentUserId,
+          }
+        : {}),
+    };
+
     if (search) {
+      const mineFilter =
+        query.mine && currentUserId
+          ? Prisma.sql`AND "authorId" = ${currentUserId}`
+          : Prisma.empty;
+
       const rows = await this.prisma.$queryRaw<{ id: string }[]>(
         Prisma.sql`
           SELECT id
           FROM "Thread"
           WHERE
-            "title" ILIKE ${`%${search}%`}
-            OR "content" ILIKE ${`%${search}%`}
-            OR similarity("title", ${search}) > 0.2
-            OR similarity("content", ${search}) > 0.08
+            (
+              "title" ILIKE ${`%${search}%`}
+              OR "content" ILIKE ${`%${search}%`}
+              OR similarity("title", ${search}) > 0.2
+              OR similarity("content", ${search}) > 0.08
+            )
+            ${mineFilter}
           ORDER BY
             GREATEST(
               similarity("title", ${search}),
@@ -152,7 +175,7 @@ export class ThreadsService {
     }
 
     return this.prisma.thread.findMany({
-      where: {},
+      where,
       orderBy,
       take,
       skip,
@@ -213,7 +236,10 @@ export class ThreadsService {
       throw new NotFoundException(`Thread with id ${id} not found`);
     }
 
-    if (thread.authorId !== author.id) {
+    const isOwner = thread.authorId === author.id;
+    const isAdmin = author.role === Role.ADMIN;
+
+    if (!isOwner && !isAdmin) {
       throw new ForbiddenException('You can delete only your own threads');
     }
 

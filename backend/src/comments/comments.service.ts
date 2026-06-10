@@ -6,8 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { NotificationsService } from 'src/notifications/notifications.service';
-import { NotificationType } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { NotificationType, Prisma, Role } from '@prisma/client';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
@@ -34,6 +33,7 @@ export class CommentsService {
       select: {
         id: true,
         username: true,
+        role: true,
       },
     });
 
@@ -233,7 +233,10 @@ export class CommentsService {
       throw new NotFoundException(`Comment with id ${commentId} not found`);
     }
 
-    if (comment.authorId !== author.id) {
+    const isOwner = comment.authorId === author.id;
+    const isAdmin = author.role === Role.ADMIN;
+
+    if (!isOwner && !isAdmin) {
       throw new ForbiddenException('You can delete only your own comments');
     }
 

@@ -4,6 +4,7 @@ export type UserProfile = {
   id: string;
   email: string;
   username: string;
+  role: 'USER' | 'ADMIN';
   avatarUrl?: string | null;
   bio?: string | null;
   createdAt: string;
@@ -115,6 +116,25 @@ export async function uploadAvatar(file: File): Promise<UserProfile> {
 
   if (!response.ok) {
     throw await buildApiError(response, `Failed to upload avatar: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteAvatar(): Promise<UserProfile> {
+  const headers = buildAuthHeaders(false);
+
+  if (!headers) {
+    throw new Error('Not signed in');
+  }
+
+  const response = await fetch(`${API_URL}/auth/me/avatar`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw await buildApiError(response, `Failed to delete avatar: ${response.status}`);
   }
 
   return response.json();

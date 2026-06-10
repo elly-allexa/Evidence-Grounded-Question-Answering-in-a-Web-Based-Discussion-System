@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import type { GoogleProfile } from './types';
@@ -12,6 +13,8 @@ export class AuthService {
   ) {}
 
   async validateGoogleUser(profile: GoogleProfile) {
+    const isRootAdmin = this.isRootAdminEmail(profile.email);
+
     const existingUser = await this.prisma.user.findUnique({
       where: { email: profile.email },
     });
@@ -20,7 +23,7 @@ export class AuthService {
       return this.prisma.user.update({
         where: { id: existingUser.id },
         data: {
-          avatarUrl: profile.avatarUrl ?? existingUser.avatarUrl,
+          role: isRootAdmin ? Role.ADMIN : existingUser.role,
         },
       });
     }
@@ -32,16 +35,18 @@ export class AuthService {
       data: {
         email: profile.email,
         username,
-        avatarUrl: profile.avatarUrl,
+        avatarUrl: null,
+        role: isRootAdmin ? Role.ADMIN : Role.USER,
       },
     });
   }
 
-  async createAccessToken(user: { id: string; email: string; username: string }) {
+  async createAccessToken(user: { id: string; email: string; username: string; role: Role }) {
     const payload = {
       sub: user.id,
       email: user.email,
       username: user.username,
+      role: user.role,
     };
 
     return this.jwtService.signAsync(payload);
@@ -56,6 +61,7 @@ export class AuthService {
         username: true,
         avatarUrl: true,
         bio: true,
+        role: true,
         createdAt: true,
       },
     });
@@ -94,6 +100,7 @@ export class AuthService {
         username: true,
         avatarUrl: true,
         bio: true,
+        role: true,
         createdAt: true,
       },
     });
@@ -113,9 +120,38 @@ export class AuthService {
         username: true,
         avatarUrl: true,
         bio: true,
+        role: true,
         createdAt: true,
       },
     });
+  }
+
+  async deleteAvatar(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        avatarUrl: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        avatarUrl: true,
+        bio: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  private isRootAdminEmail(email: string): boolean {
+    const adminEmails = process.env.ADMIN_EMAILS ?? '';
+
+    return adminEmails
+      .split(',')
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean)
+      .includes(email.toLowerCase());
   }
 
   private createUsernameFromEmail(email: string): string {

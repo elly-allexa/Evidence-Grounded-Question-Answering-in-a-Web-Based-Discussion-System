@@ -18,6 +18,7 @@ import { GroundedAiPanel } from '../features/ai/components/GroundedAiPanel';
 import { fetchAiAnswersByThreadId } from '../features/ai/api/aiApi';
 import type { GroundedAiAnswer } from '../features/ai/types/ai.types';
 import { AiAnswerHistoryModal } from '../features/ai/components/AiAnswerHistoryModal';
+import { AiJobStatusPanel } from '../features/ai/components/AiJobStatusPanel';
 import { fetchMe, type UserProfile } from '../features/auth/api/authApi';
 
 const SHOW_RETRIEVAL_DEBUG_PANEL = false;
@@ -45,6 +46,8 @@ export function ThreadDetailsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isAiAnswersModalOpen, setIsAiAnswersModalOpen] = useState(false);
+  const isThreadOwner = thread?.authorId === currentUser?.id;
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   async function loadThread() {
     if (!id) {
@@ -153,6 +156,18 @@ export function ThreadDetailsPage() {
   }, [id]);
 
   useEffect(() => {
+    if (!id || !currentUser || isAiAnswersModalOpen) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadAiAnswers();
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [id, currentUser, isAiAnswersModalOpen]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadCurrentUser() {
@@ -248,11 +263,6 @@ export function ThreadDetailsPage() {
     void loadThread();
   }
 
-  function handleAiAnswerCreated(answer: GroundedAiAnswer) {
-    setAiAnswers((prev) => [answer, ...prev]);
-    void loadThread();
-  }
-
   return (
     <main className="forum-page">
       <div className="forum-page__inner">
@@ -293,11 +303,13 @@ export function ThreadDetailsPage() {
                     </p>
                   </div>
 
-                  {thread.authorId === currentUser?.id && (
+                  {(isThreadOwner || isAdmin) && (
                     <div className="thread-hero__actions">
-                      <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
-                        {isEditing ? 'Close edit' : 'Edit thread'}
-                      </button>
+                      {isThreadOwner && (
+                        <button type="button" onClick={() => setIsEditing((prev) => !prev)}>
+                          {isEditing ? 'Close edit' : 'Edit thread'}
+                        </button>
+                      )}
 
                       <button type="button" onClick={handleDelete} disabled={isDeleting}>
                         {isDeleting ? 'Deleting...' : 'Delete thread'}
@@ -308,7 +320,7 @@ export function ThreadDetailsPage() {
 
                 <p className="thread-hero__content">{thread.content}</p>
 
-                {isEditing && thread.authorId === currentUser?.id && (
+                {isEditing && isThreadOwner && (
                   <div className="thread-hero__editor">
                     <ThreadEditForm
                       initialTitle={thread.title}
@@ -337,12 +349,12 @@ export function ThreadDetailsPage() {
                 ) : (
                   <SourceList
                     sources={sources}
-                    canManageSources={thread.authorId === currentUser?.id}
+                    canManageSources={Boolean(isThreadOwner || isAdmin)}
                     onSourceDeleted={handleSourceDeleted}
                   />
                 )}
 
-                {id && thread.authorId === currentUser?.id && (
+                {id && isThreadOwner && (
                   <div className="forum-card__subsection">
                     {sources.length >= MAX_SOURCES_PER_THREAD ? (
                       <p className="forum-card__status">
@@ -380,6 +392,7 @@ export function ThreadDetailsPage() {
                     threadId={id}
                     comments={comments}
                     currentUserId={currentUser?.id ?? null}
+                    currentUserRole={currentUser?.role ?? null}
                     onCommentCreated={handleCommentCreated}
                     onCommentUpdated={handleCommentUpdated}
                     onCommentDeleted={handleCommentDeleted}
@@ -405,10 +418,16 @@ export function ThreadDetailsPage() {
                     hasSources={sources.length > 0}
                     canAskAi={thread.authorId === currentUser?.id}
                     isSignedIn={!!currentUser}
-                    onAnswerCreated={handleAiAnswerCreated}
+                    onJobQueued={() => {
+                      window.setTimeout(() => {
+                        void loadAiAnswers();
+                      }, 6000);
+                    }}
                   />
                 </section>
               )}
+
+              {currentUser && thread.authorId === currentUser.id && <AiJobStatusPanel />}
 
               <section className="forum-card ai-answer-summary-card">
                 <div className="card-heading card-heading--split">
@@ -424,7 +443,10 @@ export function ThreadDetailsPage() {
                   <button
                     type="button"
                     className="button--ghost"
-                    onClick={() => setIsAiAnswersModalOpen(true)}
+                    onClick={() => {
+                      void loadAiAnswers();
+                      setIsAiAnswersModalOpen(true);
+                    }}
                     disabled={isAiAnswersLoading}
                   >
                     Open history

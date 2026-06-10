@@ -1,16 +1,50 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { fetchMe, updateMe, uploadAvatar } from '../features/auth/api/authApi';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { deleteAvatar, fetchMe, updateMe, uploadAvatar } from '../features/auth/api/authApi';
 import type { UserProfile } from '../features/auth/api/authApi';
 
 export function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
+
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
+  const [shouldRemoveAvatar, setShouldRemoveAvatar] = useState(false);
+  const [hasAvatarImageError, setHasAvatarImageError] = useState(false);
+
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const avatarPreviewUrl = useMemo(() => {
+    if (!selectedAvatarFile) {
+      return null;
+    }
+
+    return URL.createObjectURL(selectedAvatarFile);
+  }, [selectedAvatarFile]);
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+    };
+  }, [avatarPreviewUrl]);
+
+  useEffect(() => {
+    if (!error && !status) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setError('');
+      setStatus('');
+    }, 30000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [error, status]);
 
   async function loadProfile() {
     try {
@@ -22,6 +56,9 @@ export function ProfilePage() {
       setProfile(data);
       setUsername(data.username);
       setBio(data.bio ?? '');
+      setSelectedAvatarFile(null);
+      setShouldRemoveAvatar(false);
+      setHasAvatarImageError(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -30,7 +67,7 @@ export function ProfilePage() {
   }
 
   useEffect(() => {
-    loadProfile();
+    void loadProfile();
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -41,12 +78,23 @@ export function ProfilePage() {
       setStatus('');
       setIsSaving(true);
 
-      const updated = await updateMe({
+      let updated = await updateMe({
         username: username.trim(),
         bio: bio.trim(),
       });
 
+      if (shouldRemoveAvatar) {
+        updated = await deleteAvatar();
+      } else if (selectedAvatarFile) {
+        updated = await uploadAvatar(selectedAvatarFile);
+      }
+
       setProfile(updated);
+      setUsername(updated.username);
+      setBio(updated.bio ?? '');
+      setSelectedAvatarFile(null);
+      setShouldRemoveAvatar(false);
+      setHasAvatarImageError(false);
       setStatus('Profile updated successfully.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -55,33 +103,52 @@ export function ProfilePage() {
     }
   }
 
-  async function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    try {
-      setError('');
-      setStatus('');
-      setIsUploadingAvatar(true);
+    setError('');
+    setStatus('Avatar selected. Click Save profile to apply changes.');
+    setSelectedAvatarFile(file);
+    setShouldRemoveAvatar(false);
+    setHasAvatarImageError(false);
+  }
 
-      const updated = await uploadAvatar(file);
-
-      setProfile(updated);
-      setStatus('Avatar updated successfully.');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsUploadingAvatar(false);
-    }
+  function handleDeleteAvatar() {
+    setError('');
+    setStatus('Avatar will be removed after you click Save profile.');
+    setSelectedAvatarFile(null);
+    setShouldRemoveAvatar(true);
+    setHasAvatarImageError(false);
   }
 
   function handleSignOut() {
     localStorage.removeItem('access_token');
     window.location.href = '/';
   }
+
+  function getAvatarSrc() {
+    if (shouldRemoveAvatar) {
+      return null;
+    }
+
+    if (avatarPreviewUrl) {
+      return avatarPreviewUrl;
+    }
+
+    if (!profile?.avatarUrl || hasAvatarImageError) {
+      return null;
+    }
+
+    return profile.avatarUrl.startsWith('http')
+      ? profile.avatarUrl
+      : `${import.meta.env.VITE_API_URL}${profile.avatarUrl}`;
+  }
+
+  const avatarSrc = getAvatarSrc();
 
   if (isLoading) {
     return (
@@ -104,9 +171,7 @@ export function ProfilePage() {
 
             {error && <p className="error-banner">{error}</p>}
 
-            <p className="forum-card__status">
-              You are not signed in. Use the Sign in button in the navigation bar.
-            </p>
+            <p className="forum-card__status">Sign in to view and edit your profile.</p>
           </section>
         </div>
       </main>
@@ -127,17 +192,14 @@ export function ProfilePage() {
 
           <div className="profile-card__header">
             <div className="profile-card__avatar">
-              {profile.avatarUrl ? (
+              {avatarSrc ? (
                 <img
-                  src={
-                    profile.avatarUrl.startsWith('http')
-                      ? profile.avatarUrl
-                      : `${import.meta.env.VITE_API_URL}${profile.avatarUrl}`
-                  }
+                  src={avatarSrc}
                   alt={`${profile.username} avatar`}
+                  onError={() => setHasAvatarImageError(true)}
                 />
               ) : (
-                <span>{profile.username.slice(0, 1).toUpperCase()}</span>
+                <span aria-label="Default user avatar">👤</span>
               )}
             </div>
 
@@ -145,19 +207,29 @@ export function ProfilePage() {
               <h2>@{profile.username}</h2>
               <p className="forum-card__status">{profile.email}</p>
 
-              <label
-                className="app-nav__link"
-                style={{ display: 'inline-block', marginTop: '0.75rem' }}
-              >
-                {isUploadingAvatar ? 'Uploading...' : 'Change avatar'}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  onChange={handleAvatarChange}
-                  disabled={isUploadingAvatar}
-                  style={{ display: 'none' }}
-                />
-              </label>
+              <div className="profile-card__avatar-actions">
+                <label className="profile-card__avatar-button">
+                  Change avatar
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleAvatarChange}
+                    disabled={isSaving}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+
+                {(profile.avatarUrl || selectedAvatarFile) && !shouldRemoveAvatar && (
+                  <button
+                    type="button"
+                    className="profile-card__avatar-button profile-card__avatar-button--danger"
+                    onClick={handleDeleteAvatar}
+                    disabled={isSaving}
+                  >
+                    Delete avatar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -194,7 +266,7 @@ export function ProfilePage() {
                 {isSaving ? 'Saving...' : 'Save profile'}
               </button>
 
-              <button type="button" className="button--ghost" onClick={handleSignOut}>
+              <button type="button" className="button--ghost--signout" onClick={handleSignOut}>
                 Sign out
               </button>
             </div>

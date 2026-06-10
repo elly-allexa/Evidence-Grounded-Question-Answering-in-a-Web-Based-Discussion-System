@@ -18,6 +18,7 @@ export function ThreadsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const mine = searchParams.get('mine') === 'true';
 
   async function loadThreads(options?: { mode?: 'replace' | 'append' }) {
     const mode = options?.mode ?? 'replace';
@@ -37,6 +38,7 @@ export function ThreadsPage() {
         sort,
         limit: THREAD_PAGE_SIZE,
         skip,
+        mine,
       });
 
       setHasMore(data.length === THREAD_PAGE_SIZE);
@@ -60,7 +62,7 @@ export function ThreadsPage() {
 
   useEffect(() => {
     loadThreads({ mode: 'replace' });
-  }, [search, sort]);
+  }, [search, sort, mine]);
 
   useEffect(() => {
     const urlSearch = searchParams.get('search') ?? '';
@@ -95,12 +97,17 @@ export function ThreadsPage() {
     event.preventDefault();
 
     const normalizedSearch = searchInput.trim();
+    const nextSearchParams = new URLSearchParams();
 
     if (normalizedSearch) {
-      setSearchParams({ search: normalizedSearch });
-    } else {
-      setSearchParams({});
+      nextSearchParams.set('search', normalizedSearch);
     }
+
+    if (mine) {
+      nextSearchParams.set('mine', 'true');
+    }
+
+    setSearchParams(nextSearchParams);
 
     setSearch(normalizedSearch);
   }
@@ -108,7 +115,13 @@ export function ThreadsPage() {
   function handleClearSearch() {
     setSearchInput('');
     setSearch('');
-    setSearchParams({});
+    const nextSearchParams = new URLSearchParams();
+
+    if (mine) {
+      nextSearchParams.set('mine', 'true');
+    }
+
+    setSearchParams(nextSearchParams);
   }
 
   return (
@@ -117,7 +130,7 @@ export function ThreadsPage() {
         <header className="forum-page__header">
           <div>
             <p className="forum-page__eyebrow">Forum index</p>
-            <h1>Threads</h1>
+            <h1>{mine ? 'My threads' : 'Discussion threads'}</h1>
           </div>
         </header>
 
@@ -176,6 +189,10 @@ export function ThreadsPage() {
 
           {isLoading ? (
             <p className="forum-card__status">Loading threads...</p>
+          ) : threads.length === 0 ? (
+            <p className="forum-card__status">
+              {mine ? 'You have not created any threads yet.' : 'No threads found.'}
+            </p>
           ) : (
             <ThreadsList threads={threads} variant="grid" />
           )}

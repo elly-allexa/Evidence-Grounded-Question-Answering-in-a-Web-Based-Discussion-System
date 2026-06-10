@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateSourceDto } from './dto/create-source.dto';
 import { SourceChunkingService } from './chunking/source-chunking.service';
@@ -36,6 +37,7 @@ export class SourcesService {
       select: {
         id: true,
         username: true,
+        role: true,
       },
     });
 
@@ -187,7 +189,10 @@ export class SourcesService {
       throw new NotFoundException(`Source with id ${sourceId} not found`);
     }
 
-    if (source.thread.authorId !== author.id) {
+    const isOwner = source.thread.authorId === author.id;
+    const isAdmin = author.role === Role.ADMIN;
+
+    if (!isOwner && !isAdmin) {
       throw new ForbiddenException('Only the thread author can delete attached sources');
     }
 

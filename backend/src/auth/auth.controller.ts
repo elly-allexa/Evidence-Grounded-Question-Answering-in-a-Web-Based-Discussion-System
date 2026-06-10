@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -83,5 +84,11 @@ export class AuthController {
   )
   uploadAvatar(@CurrentUser() user: JwtUser, @UploadedFile() file: Express.Multer.File) {
     return this.authService.updateAvatar(user.id, file.filename);
+  }
+
+  @Delete('me/avatar')
+  @UseGuards(JwtAuthGuard)
+  deleteAvatar(@CurrentUser() user: JwtUser) {
+    return this.authService.deleteAvatar(user.id);
   }
 }
