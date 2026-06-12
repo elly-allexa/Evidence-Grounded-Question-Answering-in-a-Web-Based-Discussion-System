@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Thread } from '../types/thread.types';
+import { getDisplayUsername } from '../../../utils/displayUser';
+import { UserAvatar } from '../../users/components/UserAvatar';
 
 type ThreadsListProps = {
   threads: Thread[];
@@ -30,20 +32,32 @@ export function ThreadsList({ threads, variant = 'grid' }: ThreadsListProps) {
 
             <p className="thread-card__preview">{truncateContent(thread.content)}</p>
 
-            <div className="thread-card__meta">
+            <div className="thread-card__footer">
               {thread.author ? (
-                <span>By @{thread.author.username}</span>
+                <Link
+                  className="user-inline-link thread-card__author"
+                  to={`/users/${encodeURIComponent(getDisplayUsername(thread.author))}`}
+                >
+                  <UserAvatar
+                    username={getDisplayUsername(thread.author)}
+                    avatarUrl={thread.author.avatarUrl}
+                    size="sm"
+                  />
+                  <strong>@{getDisplayUsername(thread.author)}</strong>
+                </Link>
               ) : (
-                <span>By unknown</span>
+                <span className="thread-card__author">By unknown</span>
               )}
 
-              <span>Created: {new Date(thread.createdAt).toLocaleDateString()}</span>
+              <div className="thread-card__meta">
+                <span>Created: {new Date(thread.createdAt).toLocaleDateString()}</span>
 
-              <span>{thread._count?.comments ?? 0} comments</span>
+                <span>{thread._count?.comments ?? 0} comments</span>
 
-              <span>{thread._count?.sources ?? 0} sources</span>
+                <span>{thread._count?.sources ?? 0} sources</span>
 
-              <span>{thread._count?.aiAnswers ?? 0} AI answers</span>
+                <span>{thread._count?.aiAnswers ?? 0} AI answers</span>
+              </div>
             </div>
           </li>
         ))}

@@ -91,6 +91,11 @@ model SourceDocument {
   type        String //"pdf", "webpage", "text"
   contentText String // extracted text or pasted text for MVP
 
+  isDeleted        Boolean   @default(false)
+  deletedAt        DateTime?
+  deletionReason   String?
+  deletedByAdminId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

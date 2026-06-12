@@ -10,6 +10,10 @@ export type SourceDocument = {
   title: string;
   type: SourceType;
   contentText: string;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
+  deletedByAdminId?: string | null;
+  deletionReason?: string | null;
   createdAt: string;
   updatedAt: string;
   _count?: SourceChunkCount;

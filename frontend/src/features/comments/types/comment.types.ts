@@ -1,6 +1,7 @@
 export type CommentAuthor = {
   id: string;
   username: string;
+  avatarUrl?: string | null;
 };
 
 export type Comment = {

@@ -121,7 +121,7 @@ export class AdminService {
       throw new BadRequestException('You cannot remove your own admin role');
     }
 
-    return this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { id: targetUserId },
       data: {
         role: dto.role === 'ADMIN' ? Role.ADMIN : Role.USER,
@@ -143,6 +143,11 @@ export class AdminService {
         },
       },
     });
+
+    return {
+      ...updatedUser,
+      isRootAdmin: this.isRootAdminEmail(updatedUser.email),
+    };
   }
 
   private isRootAdminEmail(email: string): boolean {

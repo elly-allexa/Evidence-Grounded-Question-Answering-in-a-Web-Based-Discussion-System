@@ -53,6 +53,7 @@ export class RetrievalService {
       JOIN "SourceDocument" sd ON sd.id = sc."docId"
       WHERE
         sd."threadId" = ${threadId}
+        AND sd."isDeleted" = false
         AND to_tsvector('english', sc.text) @@ plainto_tsquery('english', ${normalizedQuestion})
       ORDER BY "score" DESC, sc."chunkIndex" ASC
       LIMIT ${safeLimit};

@@ -1,6 +1,8 @@
 export type ThreadAuthor = {
   id: string;
   username: string;
+  email?: string;
+  avatarUrl?: string | null;
 };
 
 export type Thread = {
@@ -10,11 +12,7 @@ export type Thread = {
   authorId: string;
   createdAt: string;
   updatedAt: string;
-  author?: {
-    id: string;
-    username: string;
-    email?: string;
-  };
+  author?: ThreadAuthor;
   _count?: {
     comments?: number;
     sources?: number;

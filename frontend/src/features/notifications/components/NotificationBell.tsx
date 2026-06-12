@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   fetchNotifications,
@@ -10,6 +10,7 @@ import {
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   async function loadNotifications() {
     const data = await fetchNotifications();
@@ -25,6 +26,38 @@ export function NotificationBell() {
 
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (popoverRef.current && !popoverRef.current.contains(target)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   const unreadCount = notifications.filter((item) => !item.isRead).length;
 
@@ -45,17 +78,32 @@ export function NotificationBell() {
   }
 
   return (
-    <div className="notification-bell">
+    <div className="notification-bell" ref={popoverRef}>
       <button type="button" className="app-nav__link" onClick={handleOpen}>
-        🔔 {unreadCount > 0 ? `(${unreadCount})` : ''}
+        Notifications {unreadCount > 0 ? `(${unreadCount})` : ''}
       </button>
 
       {isOpen && (
         <div className="notification-popover">
-          <h3>Notifications</h3>
+          <div className="notification-popover__header">
+            <h3>Notifications</h3>
+
+            <button
+              type="button"
+              className="notification-popover__close"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close notifications"
+            >
+              x
+            </button>
+          </div>
 
           {unreadCount > 0 && (
-            <button type="button" className="button--ghost" onClick={handleReadAll}>
+            <button
+              type="button"
+              className="button--ghost notification-popover__read-all"
+              onClick={handleReadAll}
+            >
               Mark all read
             </button>
           )}
@@ -67,7 +115,9 @@ export function NotificationBell() {
               {notifications.map((notification) => (
                 <article
                   key={notification.id}
-                  className={`notification-item ${notification.isRead ? '' : 'notification-item--unread'}`}
+                  className={`notification-item ${
+                    notification.isRead ? '' : 'notification-item--unread'
+                  }`}
                 >
                   <strong>{notification.title}</strong>
                   <p>{notification.message}</p>

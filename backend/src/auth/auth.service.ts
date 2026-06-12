@@ -160,15 +160,21 @@ export class AuthService {
     return localPart
       .toLowerCase()
       .replace(/[^a-z0-9_]/g, '_')
-      .slice(0, 30);
+      .slice(0, 15);
   }
 
   private async createUniqueUsername(baseUsername: string): Promise<string> {
-    let candidate = baseUsername || 'user';
+    const maxLength = 15;
+    const safeBase = (baseUsername || 'user').slice(0, maxLength);
+
+    let candidate = safeBase;
     let counter = 1;
 
     while (await this.prisma.user.findUnique({ where: { username: candidate } })) {
-      candidate = `${baseUsername}_${counter}`;
+      const suffix = `_${counter}`;
+      const basePart = safeBase.slice(0, maxLength - suffix.length);
+
+      candidate = `${basePart}${suffix}`;
       counter += 1;
     }
 

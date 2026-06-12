@@ -1,14 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsIn,
-  IsInt,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { APP_LIMITS } from 'src/common/config/limits';
 
 export const THREAD_SORT_VALUES = ['newest', 'popular', 'active'] as const;

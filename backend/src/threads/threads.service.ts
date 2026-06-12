@@ -19,6 +19,7 @@ const threadInclude = {
       id: true,
       username: true,
       email: true,
+      avatarUrl: true,
     },
   },
   _count: {
@@ -131,9 +132,7 @@ export class ThreadsService {
 
     if (search) {
       const mineFilter =
-        query.mine && currentUserId
-          ? Prisma.sql`AND "authorId" = ${currentUserId}`
-          : Prisma.empty;
+        query.mine && currentUserId ? Prisma.sql`AND "authorId" = ${currentUserId}` : Prisma.empty;
 
       const rows = await this.prisma.$queryRaw<{ id: string }[]>(
         Prisma.sql`

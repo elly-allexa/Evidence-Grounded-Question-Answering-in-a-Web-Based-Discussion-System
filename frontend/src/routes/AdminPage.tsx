@@ -165,7 +165,9 @@ export function AdminPage() {
                           : 'Promote to admin'}
                     </button>
 
-                    {user.isRootAdmin && <span className="admin-user-card__note">Protected account</span>}
+                    {user.isRootAdmin && (
+                      <span className="admin-user-card__note">Protected account</span>
+                    )}
                   </div>
                 </article>
               ))}

@@ -241,9 +241,10 @@ export function ProfilePage() {
                 className="thread-form__input"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                maxLength={40}
+                maxLength={15}
                 disabled={isSaving}
               />
+              <div className="field-meta">{username.length}/15</div>
             </div>
 
             <div className="thread-form__field">

@@ -16,6 +16,7 @@ const commentInclude = {
       id: true,
       username: true,
       email: true,
+      avatarUrl: true,
     },
   },
 };

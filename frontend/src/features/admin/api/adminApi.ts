@@ -72,7 +72,10 @@ export async function fetchAdminUsers(search = ''): Promise<AdminUsersResponse> 
   return response.json();
 }
 
-export async function updateUserRole(userId: string, role: UpdateUserRoleInput['role']): Promise<AdminUser> {
+export async function updateUserRole(
+  userId: string,
+  role: UpdateUserRoleInput['role'],
+): Promise<AdminUser> {
   const headers = buildAuthHeaders();
 
   if (!headers) {
@@ -86,7 +89,10 @@ export async function updateUserRole(userId: string, role: UpdateUserRoleInput['
   });
 
   if (!response.ok) {
-    throw await buildApiError(response, `Failed to update role for user ${userId}: ${response.status}`);
+    throw await buildApiError(
+      response,
+      `Failed to update role for user ${userId}: ${response.status}`,
+    );
   }
 
   return response.json();

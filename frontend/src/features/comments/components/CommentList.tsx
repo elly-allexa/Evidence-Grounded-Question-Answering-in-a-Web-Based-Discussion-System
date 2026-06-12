@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { deleteComment, updateComment } from '../api/commentsApi';
 import type { Comment, DeleteCommentResult } from '../types/comment.types';
 import { CommentEditForm } from './CommentEditForm';
 import { CommentForm } from './CommentForm';
 import { getDisplayUsername } from '../../../utils/displayUser';
+import { UserAvatar } from '../../users/components/UserAvatar';
 
 const MAX_VISUAL_DEPTH = 4;
 
@@ -121,7 +123,17 @@ export function CommentList({
         {isDeepBranch && <div className="comment-card__branch">↩ Deep reply branch</div>}
 
         <div className="comment-card__author">
-          <strong>@{getDisplayUsername(comment.author)}</strong>
+          <Link
+            className="user-inline-link"
+            to={`/users/${encodeURIComponent(getDisplayUsername(comment.author))}`}
+          >
+            <UserAvatar
+              username={getDisplayUsername(comment.author)}
+              avatarUrl={comment.author.avatarUrl}
+              size="sm"
+            />
+            <strong>@{getDisplayUsername(comment.author)}</strong>
+          </Link>
         </div>
 
         {!isEditing ? (

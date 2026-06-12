@@ -1,4 +1,11 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from 'src/prisma/database/prisma.service';
 import { CreateSourceDto } from './dto/create-source.dto';
@@ -22,6 +29,12 @@ const sourceInclude = {
     },
   },
 };
+
+const REMOVED_SOURCE_TITLE = 'Removed source';
+const REMOVED_SOURCE_MESSAGE =
+  '[This source was removed by an administrator for moderation or security reasons.]';
+const DEFAULT_DELETION_REASON =
+  'This source was removed by an administrator for moderation or security reasons.';
 
 @Injectable()
 export class SourcesService {
@@ -57,7 +70,7 @@ export class SourcesService {
       throw new NotFoundException(`Thread with id ${threadId} not found`);
     }
 
-    return this.prisma.sourceDocument.findMany({
+    const sources = await this.prisma.sourceDocument.findMany({
       where: { threadId },
       orderBy: {
         createdAt: 'desc',
@@ -70,6 +83,16 @@ export class SourcesService {
         },
       },
     });
+
+    return sources.map((source) =>
+      source.isDeleted
+        ? {
+            ...source,
+            title: REMOVED_SOURCE_TITLE,
+            contentText: REMOVED_SOURCE_MESSAGE,
+          }
+        : source,
+    );
   }
 
   async create(threadId: string, createSourceDto: CreateSourceDto, currentUserId: string) {
@@ -88,7 +111,10 @@ export class SourcesService {
     }
 
     const sourceCount = await this.prisma.sourceDocument.count({
-      where: { threadId },
+      where: {
+        threadId,
+        isDeleted: false,
+      },
     });
 
     if (sourceCount >= APP_LIMITS.MAX_SOURCES_PER_THREAD) {
@@ -177,7 +203,7 @@ export class SourcesService {
     );
   }
 
-  async delete(sourceId: string, currentUserId: string) {
+  async delete(sourceId: string, currentUserId: string, reason?: string) {
     const author = await this.getCurrentAuthor(currentUserId);
 
     const source = await this.prisma.sourceDocument.findUnique({
@@ -189,11 +215,17 @@ export class SourcesService {
       throw new NotFoundException(`Source with id ${sourceId} not found`);
     }
 
+    if (source.isDeleted) {
+      throw new ConflictException('This source has already been removed.');
+    }
+
     const isOwner = source.thread.authorId === author.id;
     const isAdmin = author.role === Role.ADMIN;
 
     if (!isOwner && !isAdmin) {
-      throw new ForbiddenException('Only the thread author can delete attached sources');
+      throw new ForbiddenException(
+        'Only the thread author or an admin can delete attached sources',
+      );
     }
 
     const aiAnswerCount = await this.prisma.aiAnswer.count({
@@ -202,10 +234,48 @@ export class SourcesService {
       },
     });
 
-    if (aiAnswerCount > 0) {
+    if (aiAnswerCount > 0 && !isAdmin) {
       throw new ForbiddenException(
         'Sources cannot be deleted after an AI answer has been generated.',
       );
+    }
+
+    if (aiAnswerCount > 0 && isAdmin) {
+      return this.prisma.$transaction(async (tx) => {
+        await tx.sourceChunk.deleteMany({
+          where: {
+            docId: source.id,
+          },
+        });
+
+        const deletedSource = await tx.sourceDocument.update({
+          where: { id: source.id },
+          data: {
+            title: REMOVED_SOURCE_TITLE,
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedByAdminId: author.id,
+            deletionReason: reason?.trim() || DEFAULT_DELETION_REASON,
+            contentText: REMOVED_SOURCE_MESSAGE,
+          },
+          include: {
+            _count: {
+              select: {
+                chunks: true,
+              },
+            },
+          },
+        });
+
+        await tx.thread.update({
+          where: { id: source.thread.id },
+          data: {
+            updatedAt: new Date(),
+          },
+        });
+
+        return deletedSource;
+      });
     }
 
     return this.prisma.sourceDocument.delete({
@@ -243,6 +313,7 @@ export class SourcesService {
       where: {
         doc: {
           threadId,
+          isDeleted: false,
         },
       },
       orderBy: [

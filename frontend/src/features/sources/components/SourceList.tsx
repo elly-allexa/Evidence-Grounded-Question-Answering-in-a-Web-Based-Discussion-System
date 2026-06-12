@@ -95,20 +95,31 @@ export function SourceList({ sources, canManageSources, onSourceDeleted }: Sourc
           const isExpanded = expandedSourceIds.has(source.id);
           const hasOverflow = source.contentText.length > PREVIEW_LENGTH;
           const sourceError = sourceErrors[source.id];
+          const isDeleted = Boolean(source.isDeleted);
+          const displayTitle = isDeleted ? 'Removed source' : source.title;
+          const displayContent = isDeleted
+            ? source.deletionReason?.trim() || source.contentText
+            : source.contentText;
 
           return (
-            <article key={source.id} className="source-card">
+            <article
+              key={source.id}
+              className={`source-card ${isDeleted ? 'source-card--removed' : ''}`}
+            >
               <div className="source-card__header">
                 <div>
-                  <h3>{source.title}</h3>
+                  <h3>{displayTitle}</h3>
                   <div className="source-card__meta">
                     <span>Type: {source.type}</span>
                     <span>Created: {new Date(source.createdAt).toLocaleString()}</span>
+                    {isDeleted && source.deletedAt && (
+                      <span>Removed: {new Date(source.deletedAt).toLocaleString()}</span>
+                    )}
                     <span>Chunks: {source._count?.chunks ?? 0}</span>
                   </div>
                 </div>
 
-                {hasOverflow && (
+                {hasOverflow && !isDeleted && (
                   <button
                     type="button"
                     className="button--ghost"
@@ -123,13 +134,13 @@ export function SourceList({ sources, canManageSources, onSourceDeleted }: Sourc
                 className={`source-card__preview ${isExpanded ? 'source-card__preview--expanded' : ''}`}
               >
                 <SafeMarkdown
-                  content={isExpanded ? source.contentText : truncateText(source.contentText)}
+                  content={isExpanded ? displayContent : truncateText(displayContent)}
                 />
               </div>
 
               {sourceError && <p className="error-banner">{sourceError}</p>}
 
-              {canManageSources && (
+              {canManageSources && !isDeleted && (
                 <div className="source-card__actions">
                   <button type="button" onClick={() => handleDelete(source.id)}>
                     Delete source

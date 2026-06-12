@@ -18,7 +18,11 @@ export class AdminController {
   }
 
   @Patch('users/:id/role')
-  updateUserRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto, @CurrentUser() user: JwtUser) {
+  updateUserRole(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserRoleDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.adminService.updateUserRole(id, dto, user.id);
   }
 }

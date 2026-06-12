@@ -20,6 +20,8 @@ import type { GroundedAiAnswer } from '../features/ai/types/ai.types';
 import { AiAnswerHistoryModal } from '../features/ai/components/AiAnswerHistoryModal';
 import { AiJobStatusPanel } from '../features/ai/components/AiJobStatusPanel';
 import { fetchMe, type UserProfile } from '../features/auth/api/authApi';
+import { getDisplayUsername } from '../utils/displayUser';
+import { UserAvatar } from '../features/users/components/UserAvatar';
 
 const SHOW_RETRIEVAL_DEBUG_PANEL = false;
 
@@ -48,6 +50,7 @@ export function ThreadDetailsPage() {
   const [isAiAnswersModalOpen, setIsAiAnswersModalOpen] = useState(false);
   const isThreadOwner = thread?.authorId === currentUser?.id;
   const isAdmin = currentUser?.role === 'ADMIN';
+  const activeSourceCount = sources.filter((source) => !source.isDeleted).length;
 
   async function loadThread() {
     if (!id) {
@@ -258,8 +261,8 @@ export function ThreadDetailsPage() {
     void loadThread();
   }
 
-  function handleSourceDeleted(sourceId: string) {
-    setSources((prev) => prev.filter((source) => source.id !== sourceId));
+  function handleSourceDeleted(_sourceId: string) {
+    void loadSources();
     void loadThread();
   }
 
@@ -293,7 +296,17 @@ export function ThreadDetailsPage() {
 
                     <p className="thread-hero__meta">
                       {'author' in thread && thread.author ? (
-                        <span>@{thread.author.username}</span>
+                        <Link
+                          className="user-inline-link thread-hero__author-link"
+                          to={`/users/${encodeURIComponent(getDisplayUsername(thread.author))}`}
+                        >
+                          <UserAvatar
+                            username={getDisplayUsername(thread.author)}
+                            avatarUrl={thread.author.avatarUrl}
+                            size="sm"
+                          />
+                          <strong>@{getDisplayUsername(thread.author)}</strong>
+                        </Link>
                       ) : (
                         <span>Unknown author</span>
                       )}
@@ -356,7 +369,7 @@ export function ThreadDetailsPage() {
 
                 {id && isThreadOwner && (
                   <div className="forum-card__subsection">
-                    {sources.length >= MAX_SOURCES_PER_THREAD ? (
+                    {activeSourceCount >= MAX_SOURCES_PER_THREAD ? (
                       <p className="forum-card__status">
                         Source limit reached. A thread can have at most {MAX_SOURCES_PER_THREAD}{' '}
                         evidence sources.
@@ -415,7 +428,7 @@ export function ThreadDetailsPage() {
                 <section>
                   <GroundedAiPanel
                     threadId={id}
-                    hasSources={sources.length > 0}
+                    hasSources={sources.some((source) => !source.isDeleted)}
                     canAskAi={thread.authorId === currentUser?.id}
                     isSignedIn={!!currentUser}
                     onJobQueued={() => {
@@ -464,7 +477,7 @@ export function ThreadDetailsPage() {
               </section>
 
               {SHOW_RETRIEVAL_DEBUG_PANEL && id && (
-                <RetrievalDebugPanel threadId={id} hasSources={sources.length > 0} />
+                <RetrievalDebugPanel threadId={id} hasSources={activeSourceCount > 0} />
               )}
             </aside>
           </div>

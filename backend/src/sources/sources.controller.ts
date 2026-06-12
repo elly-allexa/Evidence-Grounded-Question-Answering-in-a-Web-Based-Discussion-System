@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CreateSourceDto } from './dto/create-source.dto';
 import { UploadPdfSourceDto } from './dto/upload-pdf-source.dto';
@@ -7,6 +17,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import type { JwtUser } from 'src/auth/types';
 import { APP_LIMITS } from 'src/common/config/limits';
+import { DeleteSourceDto } from './dto/delete-source.dto';
 
 type UploadedPdfFile = {
   buffer: Buffer;
@@ -61,8 +72,12 @@ export class SourcesController {
 
   @Delete('sources/:sourceId')
   @UseGuards(JwtAuthGuard)
-  delete(@Param('sourceId') sourceId: string, @CurrentUser() user: JwtUser) {
-    return this.sourcesService.delete(sourceId, user.id);
+  delete(
+    @Param('sourceId') sourceId: string,
+    @CurrentUser() user: JwtUser,
+    @Body() dto: DeleteSourceDto,
+  ) {
+    return this.sourcesService.delete(sourceId, user.id, dto?.reason);
   }
 
   @Get('sources/:sourceId/chunks')
